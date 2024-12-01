@@ -9,6 +9,7 @@
 #include <ESP8266WiFi.h>
 #include <ArduinoLog.h>
 #include <U8g2lib.h>
+#include <PubSubClient.h> // MQTT库
 #ifdef U8X8_HAVE_HW_SPI
 #endif
 
@@ -41,6 +42,10 @@ U8G2_UC1604_JLX19264_F_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/LCD_SCK, /* data=*/LCD
 // #define WIFI_BSSID                        // Wi-Fi接入点的MAC地址，可选
 #define WIFI_CONNECT true  // 开机自动连接
 
+#define MQTT_SERVER_ADDRESS "192.168.100.150" // MQTT服务器地址
+#define MQTT_SERVER_PASSWORD "" // MQTT服务器密码（未启用）
+WiFiClient wifiClient;
+PubSubClient mqttClient(wifiClient);
 
 //=======================车位检测部分============================
 
@@ -81,29 +86,17 @@ void setup() {
   delay(3000);
 
 
-  //=====================初始化Wi-Fi=============================
+  //=====================初始化通信=============================
   // 连接Wi-Fi
   displayAPConfig(true, "正在连接到AP...");
   Log.notice("开始连接到AP..." CR);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  // 轮询检查是否连接成功
-  int i = 0;
-  while (WiFi.status() != WL_CONNECTED) {
-    i++;
-    delay(1000);
-    if (i > 15) {  // 15秒后如果还是连接不上，就判定为连接超时
-      Log.errorln("连接失败：%s" CR, localizableWLStatus(WiFi.status()));
-      displayAPConfig(true, "连接失败，进入本地模式");
-      delay(1000);
-      break;
-    }
-    Log.verbose("等待连接，当前Wi-Fi状态码：%d" CR, WiFi.status());
-  }
-  Log.notice("当前Wi-Fi状态：%s" CR, localizableWLStatus(WiFi.status()));
+  connectWiFi();
 
 
-  //=====================初始化激光传感器===========================
+  // 初始化MQTT组件
+  connectMQTTServer();
+
+  //=====================初始化激光传感器========================
   u8g2.clear();
   u8g2.setCursor(10, 15);
   u8g2.println("激光测距");
@@ -216,7 +209,17 @@ void loop() {
 
   displaySensorInfo();
 
-  delay(500);
+  if (mqttClient.connected()) { // 如果开发板成功连接服务器
+    //发布信息
+    pubMQTTmsg();
+    // 保持心跳
+    mqttClient.loop();
+  } else {                  // 如果开发板未能成功连接服务器
+    connectMQTTServer();    // 则尝试连接服务器
+  }
+
+  // 每隔3秒发送一次
+  delay(3000);
 
   /*
     ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -354,4 +357,79 @@ void displayLogo() {
   u8g2.setCursor(28, 35);
   u8g2.println("ParkerPal 智泊无忧");
   u8g2.sendBuffer();
+}
+
+/**
+* 连接到Wi-Fi
+*/
+void connectWiFi() {
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  // 轮询检查是否连接成功
+  int i = 0;
+  while (WiFi.status() != WL_CONNECTED) {
+    i++;
+    delay(1000);
+    if (i > 15) {  // 15秒后如果还是连接不上，就判定为连接超时
+      Log.errorln("连接失败：%s" CR, localizableWLStatus(WiFi.status()));
+      displayAPConfig(true, "连接失败，进入本地模式");
+      delay(1000);
+      break;
+    }
+    Log.verbose("等待连接，当前Wi-Fi状态码：%d" CR, WiFi.status());
+  }
+  Log.notice("当前Wi-Fi状态：%s" CR, localizableWLStatus(WiFi.status()));
+}
+
+/**
+* 连接到MQTTServer
+*/
+void connectMQTTServer(){
+  // 根据ESP8266的MAC地址生成客户端ID（避免与其它ESP8266的客户端ID重名）
+  String clientId = "esp8266-" + WiFi.macAddress();
+  Log.notice("开始连接到MQTT Server..." CR);
+  Log.noticeln("MQTT Client ID: %s", clientId);
+  Log.noticeln("MQTT Server Address: %s", MQTT_SERVER_ADDRESS);
+
+  // 设置MQTT服务器和端口号
+  mqttClient.setServer(MQTT_SERVER_ADDRESS, 1883);
+
+  // 轮询检查是否连接成功
+  int i = 0;
+  while (!mqttClient.connect(clientId.c_str())) {
+    i++;
+    delay(3000);
+    if (i > 3) {  // 重试3次，如果还是连接不上，就判定为连接超时
+      Log.errorln("MQTT连接失败：状态码：%d" CR, mqttClient.state());
+      delay(1000);
+      break;
+    }
+    Log.verboseln("MQTT等待连接，状态码：%d", mqttClient.state());
+  }
+  Log.noticeln("当前MQTT状态：%d", mqttClient.state());
+}
+
+/**
+* 发布信息到MQTTServer
+*/
+// TODO: 这里要传参自定义信息
+void pubMQTTmsg(){
+  // 建立发布主题。主题名称以Sensor-为前缀，后面添加设备的MAC地址。
+  // 这么做是为确保不同用户进行MQTT信息发布时，ESP8266客户端名称各不相同，
+  String topicString = "Sensor-Pub-" + WiFi.macAddress();
+  char publishTopic[topicString.length() + 1];  
+  strcpy(publishTopic, topicString.c_str());
+ 
+  // 建立发布信息
+  // TODO: 这里要发送传参的信息
+  String messageString = "车位名:" + spaceName + " | 占用状态:" + String(occupyStatus) + " | 预约状态:" + String(reservationStatus); 
+  char publishMsg[messageString.length() + 1];   
+  strcpy(publishMsg, messageString.c_str());
+  
+  // 发布信息
+  if(mqttClient.publish(publishTopic, publishMsg)){
+    Log.verboseln("已向MQTT Server发布信息，主题：%s，信息：%s", publishTopic, publishMsg);
+  } else {
+    Log.errorln("MQTT信息发布失败。");
+  }
 }
