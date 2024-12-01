@@ -1,1 +1,1 @@
-# ParkerPal-Sensor-ESP32
+# ParkerPal-Sensor-ESP8266
