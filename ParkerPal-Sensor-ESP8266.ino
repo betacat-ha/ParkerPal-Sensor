@@ -95,6 +95,7 @@ void setup() {
 
   // 初始化MQTT组件
   connectMQTTServer();
+  subscribeTopic();
 
   //=====================初始化激光传感器========================
   u8g2.clear();
@@ -211,7 +212,7 @@ void loop() {
 
   if (mqttClient.connected()) { // 如果开发板成功连接服务器
     //发布信息
-    pubMQTTmsg();
+    // pubMQTTmsg();
     // 保持心跳
     mqttClient.loop();
   } else {                  // 如果开发板未能成功连接服务器
@@ -393,6 +394,8 @@ void connectMQTTServer(){
 
   // 设置MQTT服务器和端口号
   mqttClient.setServer(MQTT_SERVER_ADDRESS, 1883);
+  // 设置MQTT订阅回调函数
+  mqttClient.setCallback(receiveMQTTCallback);
 
   // 轮询检查是否连接成功
   int i = 0;
@@ -400,13 +403,13 @@ void connectMQTTServer(){
     i++;
     delay(3000);
     if (i > 3) {  // 重试3次，如果还是连接不上，就判定为连接超时
-      Log.errorln("MQTT连接失败：状态码：%d" CR, mqttClient.state());
+      Log.errorln("[MQTT]连接失败：状态码：%d" CR, mqttClient.state());
       delay(1000);
       break;
     }
-    Log.verboseln("MQTT等待连接，状态码：%d", mqttClient.state());
+    Log.verboseln("[MQTT]等待连接，状态码：%d", mqttClient.state());
   }
-  Log.noticeln("当前MQTT状态：%d", mqttClient.state());
+  Log.noticeln("[MQTT]当前状态：%d", mqttClient.state());
 }
 
 /**
@@ -428,8 +431,47 @@ void pubMQTTmsg(){
   
   // 发布信息
   if(mqttClient.publish(publishTopic, publishMsg)){
-    Log.verboseln("已向MQTT Server发布信息，主题：%s，信息：%s", publishTopic, publishMsg);
+    Log.verboseln("[MQTT]已向Server发布信息，主题：%s，信息：%s", publishTopic, publishMsg);
   } else {
-    Log.errorln("MQTT信息发布失败。");
+    Log.errorln("[MQTT]信息发布失败。");
   }
+}
+
+/**
+* 订阅MQTT指定主题
+*/
+void subscribeTopic(){
+ 
+  // 建立订阅主题。主题名称以Sensor-为前缀，后面添加设备的MAC地址。
+  // 这么做是为确保不同设备使用同一个MQTT服务器测试消息订阅时，所订阅的主题名称不同
+  String topicString = "Sensor-Sub-" + WiFi.macAddress();
+  char subTopic[topicString.length() + 1];  
+  strcpy(subTopic, topicString.c_str());
+  
+  // 通过串口监视器输出是否成功订阅主题以及订阅的主题名称
+  if(mqttClient.subscribe(subTopic)){
+    Log.verboseln("[MQTT]已订阅主题：%s", subTopic);
+  } else {
+    Log.errorln("[MQTT]主题订阅失败。");
+  }
+}
+
+// 
+/**
+* MQTT收到信息后的回调函数
+*/
+void receiveMQTTCallback(char* topic, byte* payload, unsigned int length) {
+  char message[length + 1];
+  memcpy(message, payload, length);
+  message[length] = '\0'; // 添加字符串结束符
+
+  Log.verboseln("[MQTT]接收到信息：[%s]%s (%u Bytes)", topic, message, length);
+ 
+  // if ((char)payload[0] == '1') {     // 如果收到的信息以“1”为开始
+  //   digitalWrite(BUILTIN_LED, LOW);  // 则点亮LED。
+  //   Serial.println("LED ON");
+  // } else {                           
+  //   digitalWrite(BUILTIN_LED, HIGH); // 否则熄灭LED。
+  //   Serial.println("LED OFF");
+  // }
 }
