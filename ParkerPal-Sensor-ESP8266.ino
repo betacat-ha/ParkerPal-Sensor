@@ -8,10 +8,7 @@
 #include "Adafruit_VL53L0X.h"
 #include <ESP8266WiFi.h>
 #include <ArduinoLog.h>
-#include <U8g2lib.h>
 #include <PubSubClient.h> // MQTT库
-#ifdef U8X8_HAVE_HW_SPI
-#endif
 
 //=======================基础设置==========================
 const bool TestExit = false;  //硬件测试完成后是否退出
@@ -24,15 +21,7 @@ int SerialData = 0;  //串口传入数据
 String comdata = "";
 
 //=========================接口============================
-// LCD屏
-const int LCD_SCK = D5;  // 时钟
-const int LCD_SDA = D6;  // 数据
-const int LCD_RST = D4;  // 复位
-const int LCD_CD = D7;   // 数据/命令
-const int LCD_CS = D8;   // 片选
 
-// LCD显示
-U8G2_UC1604_JLX19264_F_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/LCD_SCK, /* data=*/LCD_SDA, /* cs=*/LCD_CS, /* dc=*/LCD_CD, /* reset=*/LCD_RST);
 
 //=======================物联网部分============================
 // Wi-Fi信息
@@ -79,15 +68,8 @@ void setup() {
   Log.notice("[Log]开始初始化..." CR);
 
 
-  //=====================初始化LCD驱动===========================
-  initLCD();
-  displayLogo();  // 显示Logo
-  delay(3000);
-
-
   //=====================初始化通信=============================
   // 连接Wi-Fi
-  displayAPConfig(true, "正在连接到AP...");
   Log.notice("[Wi-Fi]开始连接到AP..." CR);
   connectWiFi();
 
@@ -97,22 +79,9 @@ void setup() {
   subscribeTopic();
 
   //=====================初始化激光传感器========================
-  u8g2.clear();
-  u8g2.setCursor(10, 15);
-  u8g2.println("激光测距");
-  u8g2.setCursor(10, 35);
-  u8g2.println("正在自检...");
-  u8g2.sendBuffer();
-
   if (!lox.begin()) {
-    u8g2.clear();
-    u8g2.setCursor(10, 15);
-    u8g2.println("激光测距");
-    u8g2.setCursor(10, 35);
-    u8g2.println("无法启动激光测距仪");
-    u8g2.setCursor(10, 55);
-    u8g2.println("启动中止，请重置开发板");
-    u8g2.sendBuffer();
+    Log.noticeln("[VL53L0X]无法启动激光测距仪！");
+    Log.noticeln("[System]启动中止，请重置开发板");
     while (1) {
       system_soft_wdt_feed(); // 喂狗，防止复位
     }
@@ -121,8 +90,6 @@ void setup() {
   // 清空脏数据
   lox.rangingTest(&measure, false);
   delay(500);
-
-  displayLogo();
 }
 
 
@@ -206,8 +173,6 @@ void loop() {
   } else {
     occupyStatus = 0;
   }
-
-  displaySensorInfo();
 
   if (mqttClient.connected()) { // 如果开发板成功连接服务器
     //发布信息
@@ -299,66 +264,6 @@ void delaytime(int delaytime) {
   // Serial.println("");
 }
 
-
-void initLCD() {
-  u8g2.begin();
-  u8g2.setFont(u8g2_font_wqy16_t_gb2312);
-  u8g2.enableUTF8Print();
-  u8g2.sendF("c", 0xeb);  //设置LCD偏置比(亮度设置)
-  u8g2.sendF("c", 0x81);  //设置SEG偏置电压(对比度)
-  u8g2.sendF("c", 0xa3);  //设置帧速率
-  u8g2.sendF("c", 0x2f);  //显示屏功耗设置
-}
-
-void displaySensorInfo() {
-  u8g2.clear();
-
-  u8g2.setCursor(0, 15);
-  u8g2.println("车位名");
-  u8g2.setCursor(75, 15);
-  u8g2.println(spaceName);
-
-  u8g2.setCursor(0, 35);
-  u8g2.println("距离(mm)");
-  u8g2.setCursor(75, 35);
-  u8g2.println(distance);
-  if (distance >= 8160)
-    u8g2.println(" (超限)");
-  if (distance < 10)
-    u8g2.println(" (清洁传感器)");
-
-  u8g2.setCursor(0, 55);
-  u8g2.println("车位状态");
-  u8g2.setCursor(75, 55);
-  u8g2.println(reservationStatus == 1 ? "有预约" : "未预约");
-  u8g2.println(" | ");
-  u8g2.println(occupyStatus == 1 ? "已占用" : "未占用");
-
-  u8g2.sendBuffer();
-}
-
-void displayAPConfig(bool clear, String note) {
-  if (clear)
-    u8g2.clear();
-
-  u8g2.setCursor(10, 15);
-  u8g2.print("SSID: ");
-  u8g2.println(WIFI_SSID);
-  u8g2.setCursor(10, 35);
-  u8g2.print("PWD: ");
-  u8g2.println(WIFI_PASSWORD);
-  u8g2.setCursor(10, 55);
-  u8g2.println(note);
-  u8g2.sendBuffer();
-}
-
-void displayLogo() {
-  u8g2.clear();
-  u8g2.setCursor(28, 35);
-  u8g2.println("ParkerPal 智泊无忧");
-  u8g2.sendBuffer();
-}
-
 /**
 * 连接到Wi-Fi
 */
@@ -372,7 +277,6 @@ void connectWiFi() {
     delay(1000);
     if (i > 15) {  // 15秒后如果还是连接不上，就判定为连接超时
       Log.errorln("[Wi-Fi]连接失败：%s" CR, localizableWLStatus(WiFi.status()));
-      displayAPConfig(true, "[Wi-Fi]连接失败，进入本地模式");
       delay(1000);
       break;
     }
