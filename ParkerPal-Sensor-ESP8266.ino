@@ -74,10 +74,9 @@ void setup() {
   
 
   //=====================初始化日志框架==========================
-  
   Log.setPrefix(printPrefix); // 设置前缀
   Log.begin(LOG_LEVEL_VERBOSE, &Serial);
-  Log.notice("开始初始化..." CR);
+  Log.notice("[Log]开始初始化..." CR);
 
 
   //=====================初始化LCD驱动===========================
@@ -89,7 +88,7 @@ void setup() {
   //=====================初始化通信=============================
   // 连接Wi-Fi
   displayAPConfig(true, "正在连接到AP...");
-  Log.notice("开始连接到AP..." CR);
+  Log.notice("[Wi-Fi]开始连接到AP..." CR);
   connectWiFi();
 
 
@@ -155,7 +154,7 @@ void loop() {
 
     /************************距离传感器校准*********************************/
     if (SerialData == 'C') {
-      Log.notice("校准流程开始！\n当前数值:%d \n请使用物品完全覆盖住传感器，并保持不动，直到校准完成。\n3秒后校准流程自动开始！" CR, Distance_calibration);
+      Log.notice("[VL53L0X]校准流程开始！\n当前数值:%d \n请使用物品完全覆盖住传感器，并保持不动，直到校准完成。\n3秒后校准流程自动开始！" CR, Distance_calibration);
 
       delay(3000);
 
@@ -185,9 +184,9 @@ void loop() {
       if (result != 0) {
         //存储原始数据
         Distance_calibration = result;
-        Log.noticeln("校准完成！");
+        Log.noticeln("[VL53L0X]校准完成！");
       } else {
-        Log.errorln("校准失败！");
+        Log.errorln("[VL53L0X]校准失败！");
       }
     }
   }
@@ -235,9 +234,9 @@ void loop() {
   if (Test == true) {
     if (lox.begin()) {
       lox.rangingTest(&measure, false);  // pass in 'true' to get debug data printout!
-      Log.verboseln("当前与物体的距离(mm):%d", measure.RangeMilliMeter);
+      Log.verboseln("[VL53L0X]当前与物体的距离(mm):%d", measure.RangeMilliMeter);
     } else {
-      Log.errorln("无法启动VL53L0X激光测距仪");
+      Log.errorln("[VL53L0X]无法启动VL53L0X激光测距仪");
     }
     delay(500);
   }
@@ -372,14 +371,14 @@ void connectWiFi() {
     i++;
     delay(1000);
     if (i > 15) {  // 15秒后如果还是连接不上，就判定为连接超时
-      Log.errorln("连接失败：%s" CR, localizableWLStatus(WiFi.status()));
-      displayAPConfig(true, "连接失败，进入本地模式");
+      Log.errorln("[Wi-Fi]连接失败：%s" CR, localizableWLStatus(WiFi.status()));
+      displayAPConfig(true, "[Wi-Fi]连接失败，进入本地模式");
       delay(1000);
       break;
     }
-    Log.verbose("等待连接，当前Wi-Fi状态码：%d" CR, WiFi.status());
+    Log.verbose("[Wi-Fi]等待连接，当前状态码：%d" CR, WiFi.status());
   }
-  Log.notice("当前Wi-Fi状态：%s" CR, localizableWLStatus(WiFi.status()));
+  Log.notice("[Wi-Fi]当前状态：%s" CR, localizableWLStatus(WiFi.status()));
 }
 
 /**
@@ -388,9 +387,9 @@ void connectWiFi() {
 void connectMQTTServer(){
   // 根据ESP8266的MAC地址生成客户端ID（避免与其它ESP8266的客户端ID重名）
   String clientId = "esp8266-" + WiFi.macAddress();
-  Log.notice("开始连接到MQTT Server..." CR);
-  Log.noticeln("MQTT Client ID: %s", clientId);
-  Log.noticeln("MQTT Server Address: %s", MQTT_SERVER_ADDRESS);
+  Log.notice("[MQTT]开始连接到Server..." CR);
+  Log.noticeln("[MQTT]Client ID: %s", clientId);
+  Log.noticeln("[MQTT]Server Address: %s", MQTT_SERVER_ADDRESS);
 
   // 设置MQTT服务器和端口号
   mqttClient.setServer(MQTT_SERVER_ADDRESS, 1883);
@@ -456,7 +455,6 @@ void subscribeTopic(){
   }
 }
 
-// 
 /**
 * MQTT收到信息后的回调函数
 */
