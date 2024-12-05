@@ -3,12 +3,13 @@
   立项时间：2024.8.30
 */
 #include <SPI.h>
-
 #include <Wire.h>
-#include "Adafruit_VL53L0X.h"
-#include <ESP8266WiFi.h>
-#include <ArduinoLog.h>
-#include <PubSubClient.h> // MQTT库
+#include "Adafruit_VL53L0X.h" // 激光传感器库
+#include <ESP8266WiFi.h>      // Wi-Fi库
+#include <ArduinoLog.h>       // Log日志框架
+#include <PubSubClient.h>     // MQTT库
+#include <ArduinoJson.h>      // Json库
+#include "operations.h"
 
 //=======================基础设置==========================
 const bool TestExit = false;  //硬件测试完成后是否退出
@@ -35,6 +36,8 @@ String comdata = "";
 #define MQTT_SERVER_PASSWORD "" // MQTT服务器密码（未启用）
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
+
+
 
 //=======================车位检测部分============================
 
@@ -236,8 +239,6 @@ int getAvgDistance() {
     times++;
   }
 
-
-
   // 如果没有结果，返回-1，如果有结果，返回校准后的数据
   return result == 0 ? -1 : result;
 }
@@ -368,12 +369,49 @@ void receiveMQTTCallback(char* topic, byte* payload, unsigned int length) {
   message[length] = '\0'; // 添加字符串结束符
 
   Log.verboseln("[MQTT]接收到信息：[%s]%s (%u Bytes)", topic, message, length);
- 
-  // if ((char)payload[0] == '1') {     // 如果收到的信息以“1”为开始
-  //   digitalWrite(BUILTIN_LED, LOW);  // 则点亮LED。
-  //   Serial.println("LED ON");
-  // } else {                           
-  //   digitalWrite(BUILTIN_LED, HIGH); // 否则熄灭LED。
-  //   Serial.println("LED OFF");
-  // }
+
+  // 初步处理数据
+  JsonDocument doc; // Json数据
+  DeserializationError error = deserializeJson(doc, message); // 反序列化Json
+
+  if (error) {
+    Log.errorln("[MQTT]Json数据解析失败：%s。", error.f_str());
+    return;
+  }
+
+  if (doc["code"] != 200) {
+    Log.errorln("[MQTT]服务器返回错误信息：%s。", doc["msg"]);
+    return;
+  }
+
+  // 提取Data部分
+  JsonObject data = doc["data"];
+  const char* operation = data["operation"];
+  OperationCode code = getOperationCode(operation);
+
+  switch (code) {
+    case OPERATION_MODIFY_SETTINGS:
+        Log.noticeln("[MQTT]服务器要求更新配置文件。");
+        break;
+    case OPERATION_SYNIC_TIME:
+        Log.noticeln("[MQTT]服务器要求同步时间。");
+        break;
+    case OPERATION_REBOOT:
+        Log.noticeln("[MQTT]服务器要求重启设备。");
+        Log.noticeln("[System]3秒后重启设备。");
+        delay(3000);
+        ESP.restart();
+        break;
+    case OPERATION_CHECK_STATUS:
+        Log.noticeln("[MQTT]服务器要求上报状态。");
+        pubMQTTmsg();
+        break;
+    case OPERATION_CALIBRATE_SENSOR:
+        Log.noticeln("[MQTT]服务器要求进行传感器校准。");
+        break;
+    // 其他操作处理...
+    default:
+        Log.noticeln("[MQTT]服务器发出了一个未知指令。");
+        break;
+  }
 }
