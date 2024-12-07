@@ -154,7 +154,7 @@ void loop() {
   }
 
   // 每隔3秒发送一次
-  delay(3000);
+  // delay(500);
 
   /*
     ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -333,7 +333,7 @@ void pubMQTTmsg(const String& message) {
   char publishTopic[topicString.length() + 1];
   strcpy(publishTopic, topicString.c_str());
 
-  pubMQTTmsg(topicString, message)
+  pubMQTTmsg(topicString, message);
 }
 
 /**
@@ -358,14 +358,65 @@ void pubMQTTmsg(const String& topic, const String& message) {
 }
 
 /**
- * 组装发布的消息内容
- * @param spaceName 车位名称
- * @param occupyStatus 车位占用状态 (0: 空闲, 1: 占用)
- * @param reservationStatus 预约状态 (0: 未预约, 1: 已预约)
+ * 将 JSON 字符串解析为 JsonObject
+ * @param jsonString 输入的 JSON 字符串
+ * @return 返回解析得到的 JsonObject，解析失败时返回包含占位信息的 JsonObject
+ */
+JsonObject stringToJsonObject(const String& jsonString) {
+    // 必须创建静态对象，否则函数结束，所分配的内存就会被销毁
+    static StaticJsonDocument<256> doc;
+
+    // 清空文档，确保内容不会混淆
+    doc.clear();
+
+    // 尝试解析 JSON 字符串
+    DeserializationError error = deserializeJson(doc, jsonString);
+
+    // 如果解析失败，返回带有占位信息的对象
+    if (error) {
+        JsonObject placeholder = doc.to<JsonObject>();
+        placeholder["error"] = "Invalid JSON";
+        return placeholder;
+    }
+
+    // 返回解析成功的 JsonObject
+    return doc.as<JsonObject>();
+}
+
+/**
+ * 组装发布VL53L0X状态Json
  * @return 返回组装好的消息字符串
  */
-String assembleMQTTMessage(const String& spaceName, int occupyStatus, int reservationStatus) {
-  return "车位名:" + spaceName + " | 占用状态:" + String(occupyStatus) + " | 预约状态:" + String(reservationStatus);
+String getLoxStatusJson() {
+  JsonDocument doc;
+  doc["sensorType"] = "VL53L0X";
+  doc["spaceName"] = spaceName;
+  doc["occupyStatus"] = occupyStatus;
+  doc["reservationStatus"] = reservationStatus;
+
+  String output;
+  serializeJson(doc, output);
+
+  return output;
+}
+
+/**
+ * 组装发布所有状态Json
+ * @return 返回组装好的消息字符串
+ */
+String getStatusJson() {
+  JsonDocument doc;
+  doc["uuid"] = "123456789";
+  doc["powerMode"] = "AC";
+  doc["batteryLife"] = 100.0;
+
+  // 添加激光传感器的状态数据
+  doc["sensorStatus"][0] = stringToJsonObject(getLoxStatusJson());
+
+  String output;
+  serializeJson(doc, output);
+
+  return output;
 }
 
 /**
@@ -431,7 +482,7 @@ void receiveMQTTCallback(char* topic, byte* payload, unsigned int length) {
       break;
     case OPERATION_CHECK_STATUS:
       Log.noticeln("[MQTT] 服务器要求上报状态。");
-      pubMQTTmsg();
+      pubMQTTmsg(getStatusJson());
       break;
     case OPERATION_CALIBRATE_SENSOR:
       Log.noticeln("[MQTT] 服务器要求进行传感器校准。");
