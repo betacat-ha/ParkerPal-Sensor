@@ -24,7 +24,7 @@ bool WiFiHandler::connect() {
         Log.noticeln("WiFi connected!");
 
         // 打印IP地址
-        snprintf(buffer, sizeof(buffer), "IP address: %s", WiFi.localIP().toString());
+        snprintf(buffer, sizeof(buffer), "IP address: %s", WiFi.localIP().toString().c_str());
         Log.noticeln("%s", buffer);
         return true;
     } else {

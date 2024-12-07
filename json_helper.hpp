@@ -12,7 +12,7 @@ struct ParkingSpaceStatus {
 
 struct RSSIs {
 
-}
+};
 
 String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus);
 
