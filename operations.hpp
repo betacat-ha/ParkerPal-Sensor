@@ -1,5 +1,5 @@
-#ifndef OPERATIONS_H
-#define OPERATIONS_H
+#ifndef OPERATIONS_HPP
+#define OPERATIONS_HPP
 
 // 定义 OperationCode 枚举
 enum OperationCode {
@@ -19,4 +19,4 @@ enum OperationCode {
 // 声明 getOperationCode 函数
 OperationCode getOperationCode(const char* operation);
 
-#endif // OPERATIONS_H
+#endif // OPERATIONS_HPP
