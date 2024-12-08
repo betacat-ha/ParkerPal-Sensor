@@ -13,5 +13,5 @@ String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus) {
 }
 
 String fromJsonStruct(const RSSIs& rssis) {
-
+    return "test";
 }

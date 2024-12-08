@@ -2,7 +2,7 @@
 
 VL53L0XSensor::VL53L0XSensor() {
     if (!_lox.begin()) {
-        Log.errorln("[VL53L0X] Unable to start laser distance sensor!");
+        Log.errorln("[VL53L0X] 无法启动！");
     }
 }
 
@@ -19,7 +19,7 @@ int VL53L0XSensor::getDistance() {
 }
 
 void VL53L0XSensor::calibrate() {
-    Log.noticeln("[VL53L0X] Calibration starting...");
+    Log.noticeln("[VL53L0X] 开始校准...");
 
     int result = 0;
     int times = 0;
@@ -41,8 +41,8 @@ void VL53L0XSensor::calibrate() {
 
     if (result != 0) {
         _distanceCalibration = result;
-        Log.noticeln("[VL53L0X] Calibration complete!");
+        Log.noticeln("[VL53L0X] 校准完成！");
     } else {
-        Log.errorln("[VL53L0X] Calibration failed!");
+        Log.errorln("[VL53L0X] 校准失败！");
     }
 }
