@@ -13,16 +13,16 @@
 #include <Wire.h>
 
 //=======================基础设置==========================
-constexpr bool TestExit = false; //硬件测试完成后是否退出
-
-//调试开关
-bool Test = true;
-
 // 串口通信部分
 int SerialData = 0; //串口传入数据
 String comdata = "";
 
-//=========================接口============================
+//=========================调试设置============================
+constexpr bool TestExit = false; //硬件测试完成后是否退出
+
+//调试开关
+bool Test = true;
+const bool TEST_IGNORE_VL53L0X_FAILED = true;
 
 //=======================物联网部分============================
 const char *WIFI_SSID = "mahaka_iot"; // Wi-Fi接入点的名字，最多可以包含32个字符
@@ -74,16 +74,16 @@ void setup() {
         // mqttHandler->setCallback(callback);
 
         if (mqttHandler->connect()) {
-            mqttHandler->subscribeTopic("inTopic");
+            mqttHandler->subscribeTopic();
         } else {
-            Log.errorln("Failed to establish MQTT connection.");
+            Log.errorln("[MQTT] 无法建立与服务器的连接。");
             // 如果MQTT连接失败，进入死循环
             while (1) {
                 system_soft_wdt_feed(); // 喂狗，防止复位
             }
         }
     } else {
-        Log.errorln("Failed to establish Wi-Fi connection.");
+        Log.errorln("[Wi-Fi] 无法建立与AP的连接。");
         // 如果Wi-Fi连接失败，进入死循环
         while (1) {
             system_soft_wdt_feed(); // 喂狗，防止复位
@@ -94,8 +94,9 @@ void setup() {
     sensor = new VL53L0XSensor();
     if (!sensor) {
         Log.errorln("[VL53L0X] 初始化失败！");
-        while (1)
-            ;
+        while (1 && !TEST_IGNORE_VL53L0X_FAILED) {
+            system_soft_wdt_feed(); // 喂狗，防止复位
+        }
     }
 }
 

@@ -35,9 +35,13 @@ bool initLog() {
         Log.begin(LOG_LEVEL_VERBOSE, &Serial);
         Log.setShowLevel(false); // 不显示内置日志级别，因为我们已经在前缀中处理了
         
+        Log.noticeln("[Log] 日志框架初始化完成！");
+
         initialized = true;
         return true;
     }
+    
+    Log.errorln("[Log] 日志框架初始化失败！");
     return false;
 }
 

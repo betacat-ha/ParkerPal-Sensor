@@ -16,19 +16,19 @@ bool WiFiHandler::connect() {
     int retry = 0;
     while (WiFi.status() != WL_CONNECTED && retry < 20) {
         delay(1000);
-        snprintf(buffer, sizeof(buffer), "[Wi-Fi] 等待连接 %ds，状态：", retry++);
+        snprintf(buffer, sizeof(buffer), "[Wi-Fi] 等待连接%ds，状态：%s", retry++, localizableWLStatus(WiFi.status()).c_str());
         Log.verboseln("%s", buffer);
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-        Log.noticeln("WiFi connected!");
+        Log.noticeln("[Wi-Fi] 已连接！");
 
         // 打印IP地址
-        snprintf(buffer, sizeof(buffer), "[Wi-Fi] IP地址： %s", WiFi.localIP().toString().c_str());
+        snprintf(buffer, sizeof(buffer), "[Wi-Fi] IP地址：%s", WiFi.localIP().toString().c_str());
         Log.noticeln("%s", buffer);
         return true;
     } else {
-        Log.error("[Wi-Fi] 无法连接至Wi-Fi.");
+        Log.errorln("[Wi-Fi] 无法连接至Wi-Fi.");
         return false;
     }
 }
