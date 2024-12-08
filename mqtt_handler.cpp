@@ -22,34 +22,35 @@ void MQTTHandler::setCallback(void (*callback)(char*, byte*, unsigned int)) {
 bool MQTTHandler::connect() {
     String clientId = "esp8266-" + WiFi.macAddress();
     Log.noticeln("Starting MQTT connection...");
-    Log.noticeln("Client ID: %s", clientId.c_str());
+    Log.noticeln("[MQTT] Client ID: %s", clientId.c_str());
 
     if (WiFi.status() != WL_CONNECTED) {
-        Log.errorln("Wi-Fi not connected.");
+        Log.errorln("[MQTT] Wi-Fi 未连接");
         return false;
     }
 
     while (!_mqttClient.connect(clientId.c_str(), _username, _password)) {
-        Log.noticeln("Waiting for MQTT connection...");
+        Log.noticeln("[MQTT] 等待与服务器建立连接...");
         delay(1000);
     }
-    Log.noticeln("MQTT connected!");
+    Log.noticeln("[MQTT] 服务器连接成功！");
     return true;
 }
 
 void MQTTHandler::subscribeTopic(const char* topic) {
     if (_mqttClient.subscribe(topic)) {
-        Log.noticeln("Subscribed to topic: %s", topic);
+        Log.noticeln("[MQTT] 订阅主题: %s", topic);
     } else {
-        Log.errorln("Failed to subscribe to topic: %s", topic);
+        Log.errorln("[MQTT] 无法订阅主题: %s", topic);
     }
 }
 
+
 void MQTTHandler::publishMessage(const char* topic, const char* message) {
     if (_mqttClient.publish(topic, message)) {
-        Log.noticeln("Published message to topic %s: %s", topic, message);
+        Log.noticeln("[MQTT] 发布消息到主题[%s]: %s", topic, message);
     } else {
-        Log.errorln("Failed to publish message to topic %s", topic);
+        Log.errorln("[MQTT] 无法发布消息到主题[%s]: %s", topic, message);
     }
 }
 
