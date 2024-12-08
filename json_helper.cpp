@@ -12,6 +12,19 @@ String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus) {
     return output;
 }
 
-String fromJsonStruct(const RSSIs& rssis) {
-    return "test";
+String fromJsonStruct(const WiFiScanList& wiFiScanList) {
+    DynamicJsonDocument doc(1024);
+
+    JsonArray networksArray = doc.createNestedArray("networks");
+
+    for (int i = 0; i < wiFiScanList.count; ++i) {
+        JsonObject networkObj = networksArray.createNestedObject();
+        networkObj["ssid"] = wiFiScanList.networks[i].ssid.c_str();
+        networkObj["rssi"] = wiFiScanList.networks[i].rssi;
+    }
+    doc["count"] = wiFiScanList.count;
+
+    String output;
+    serializeJson(doc, output);
+    return output;
 }

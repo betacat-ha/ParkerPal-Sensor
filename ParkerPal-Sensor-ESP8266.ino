@@ -94,8 +94,7 @@ void setup() {
     sensor = new VL53L0XSensor();
     if (!sensor) {
         Log.errorln("[VL53L0X] 初始化失败！");
-        while (1)
-            ;
+        while (1);
     }
 }
 
@@ -124,21 +123,23 @@ void loop() {
     constexpr unsigned long publishInterval = 3000; // 每3秒发布一次数据
 
     // 获取距离并判断车位状态
-    int distance = sensor->getDistance();
-    if (distance >= 140 && distance <= 280) {
-        occupyStatus = 1;
-    }
+    // int distance = sensor->getDistance();
+    // if (distance >= 140 && distance <= 280) {
+    //     occupyStatus = 1;
+    // }
 
-    // wifiHandler->scanAndPrintNetworks(); // TODO
-    // 能正确扫描，下一步把信息存入结构体转换成json数据
+    // wifiHandler->scanAndPrintNetworks(); 
 
-    ParkingSpaceStatus a = {
-        .spaceName = "",
-        .occupyStatus = 0,
-        .reservationStatus = 0,
-        .distance = 0.0f
-    };
+    WiFiScanList list = wifiHandler->scanNetworks();
+    Log.noticeln(fromJsonStruct(list).c_str());
+    delay(3000);
 
+    // ParkingSpaceStatus a = {
+    //     .spaceName = "",
+    //     .occupyStatus = 0,
+    //     .reservationStatus = 0,
+    //     .distance = 0.0f
+    // };
     // Log.noticeln(fromJsonStruct(a).c_str());
 
     // // 组装消息并发布到MQTT服务器

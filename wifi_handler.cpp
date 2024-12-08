@@ -45,7 +45,7 @@ int WiFiHandler::getRSSI() {
 void WiFiHandler::scanAndPrintNetworks() {
     Log.noticeln("[Wi-Fi] 扫描AP...");
 
-    int numberOfNetworks = WiFi.scanNetworks(); // 扫描可用的Wi-Fi网络
+    int numberOfNetworks = WiFi.scanNetworks();
 
     if (numberOfNetworks == 0) {
         Log.noticeln("[Wi-Fi] 未找到AP。");
@@ -65,4 +65,59 @@ void WiFiHandler::scanAndPrintNetworks() {
 
     // 扫描完成后，WiFi扫描列表会被清除，以释放内存
     WiFi.scanDelete();
+}
+
+
+WiFiScanList WiFiHandler::scanNetworks() {
+    Log.noticeln("[Wi-Fi] 扫描AP...");
+
+    WiFiScanList list;
+    int numberOfNetworks = WiFi.scanNetworks();
+
+    if (numberOfNetworks == 0) {
+        Log.noticeln("[Wi-Fi] 未找到AP。");
+        list.count = 0;
+        return list;
+    } 
+    
+    int i = 0;
+
+    while(i < min(numberOfNetworks, MAX_NETWORKS)) {
+        list.networks[i].ssid = WiFi.SSID(i);
+        list.networks[i].rssi = WiFi.RSSI(i);
+        ++i;
+    }
+
+    list.count = i;
+    WiFi.scanDelete();
+    Log.noticeln("[Wi-Fi] 扫描完成。");
+    return list;
+}
+
+WiFiScanList WiFiHandler::scanNetworks(FilterFunction filter) {
+  Log.noticeln("[Wi-Fi] 扫描AP（带过滤器）...");
+
+    WiFiScanList list;
+    int numberOfNetworks = WiFi.scanNetworks();
+
+    if (numberOfNetworks == 0) {
+        Log.noticeln("[Wi-Fi] 未找到AP（带过滤器）。");
+        list.count = 0;
+        return list;
+    } 
+
+    int i = 0, j = 0;
+    while(i < numberOfNetworks) {
+        NetworkInfo network = { WiFi.SSID(i), WiFi.RSSI(i) };
+        if(filter(network)) {
+          list.networks[j] = network;
+          ++j;
+        }
+        if(j >= MAX_NETWORKS) break;
+    }
+
+    list.count = j;
+    WiFi.scanDelete();
+    Log.noticeln("[Wi-Fi] 扫描完成（带过滤器）。");
+    return list;
 }
