@@ -4,6 +4,7 @@
 #include <PubSubClient.h>
 #include <ESP8266WiFi.h>
 #include "log_helper.hpp"
+#include "operations.hpp"
 
 class MQTTHandler {
 public:
@@ -13,8 +14,10 @@ public:
     bool connect();
     void subscribeTopic();
     void subscribeTopic(const char* topic);
+    void publishMessage(const char* message);
     void publishMessage(const char* topic, const char* message);
     void loop();
+    void callback(char* topic, byte* payload, unsigned int length);
 
 private:
     PubSubClient _mqttClient;

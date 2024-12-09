@@ -66,6 +66,18 @@ void MQTTHandler::publishMessage(const char *topic, const char *message) {
     }
 }
 
+/**
+* 使用默认主题发送信息
+*/
+void MQTTHandler::publishMessage(const char *message) {
+    String topicString = "Sensor-Pub-" + WiFi.macAddress();
+    char pubTopic[topicString.length() + 1];
+    strcpy(pubTopic, topicString.c_str());
+
+    publishMessage(pubTopic, message);
+}
+
 void MQTTHandler::loop() {
     _mqttClient.loop();
 }
+

@@ -26,4 +26,11 @@ String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus);
 
 String fromJsonStruct(const WiFiScanList& wiFiScanList);
 
+JsonObject getJsonObject(JsonDocument& doc, const ParkingSpaceStatus& parkingSpaceStatus);
+
+JsonObject getJsonObject(JsonDocument& doc, const WiFiScanList& wiFiScanList);
+
+JsonObject stringToJsonObject(JsonDocument& doc, const String& jsonString);
+
+
 #endif // JSON_HELPER_HPP
