@@ -11,6 +11,7 @@ public:
                 const char* username = "", const char* password = "");
     void setCallback(void (*callback)(char*, byte*, unsigned int));
     bool connect();
+    void subscribeTopic();
     void subscribeTopic(const char* topic);
     void publishMessage(const char* topic, const char* message);
     void loop();
