@@ -12,6 +12,15 @@
 #include <SPI.h>
 #include <Wire.h>
 
+// 配置文件
+#if __has_include("config.h")
+  // 如果存在 config.h，则优先包含
+  #include "config.h"
+#else
+  // 如果不存在 config.h，则回退到 config_template.h
+  #include "config_template.h"
+#endif
+
 //=======================基础设置==========================
 // 串口通信部分
 int SerialData = 0; //串口传入数据
@@ -25,18 +34,16 @@ bool Test = true;
 const bool TEST_IGNORE_VL53L0X_FAILED = true;
 
 //=======================物联网部分============================
-const char *WIFI_SSID = "mahaka_iot"; // Wi-Fi接入点的名字，最多可以包含32个字符
-const char *WIFI_PASSWORD =
-    "WDAd1a31d3aWA&&#"; // Wi-Fi接入点的密码，长度至少应为8个字符且不超过64个字符
+const char *WIFI_SSID = CONF_WIFI_SSID;         // Wi-Fi接入点的名字，最多可以包含32个字符
+const char *WIFI_PASSWORD = CONF_WIFI_PASSWORD; // Wi-Fi接入点的密码，长度至少应为8个字符且不超过64个字符
 // const char * WIFI_CHANNEL                       // Wi-Fi接入点的频道，可选
 // const char * WIFI_BSSID                         // Wi-Fi接入点的MAC地址，可选
 WiFiHandler *wifiHandler = nullptr;
 
-const char *MQTT_SERVER_ADDRESS = "broker.emqx.io";
-// const char * MQTT_SERVER_ADDRESS = "192.168.100.150";      // MQTT服务器地址
-const char *MQTT_SERVER_USER = "ParkerPal";  // MQTT服务器用户
-const char *MQTT_SERVER_PASSWORD = "123456"; // MQTT服务器密码
-constexpr uint16_t MQTT_SERVER_PORT = 1883;
+const char *MQTT_SERVER_ADDRESS = CONF_MQTT_SERVER_ADDRESS;   // MQTT服务器地址
+const char *MQTT_SERVER_USER = CONF_MQTT_SERVER_USER;         // MQTT服务器用户
+const char *MQTT_SERVER_PASSWORD = CONF_MQTT_SERVER_PASSWORD; // MQTT服务器密码
+constexpr uint16_t MQTT_SERVER_PORT = CONF_MQTT_SERVER_PORT;
 MQTTHandler *mqttHandler = nullptr;
 
 //=======================车位检测部分============================
@@ -55,13 +62,15 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    //=====================初始化日志框架==========================
-    initLog();
-
+    // 出现此消息代表串口通信正常
     Serial.print("\n\n");
     Serial.print("================================\n");
     Serial.print("          智泊无忧传感器          \n");
     Serial.print("================================\n");
+
+    //=====================初始化日志框架==========================
+    initLog();
+
 
     //=====================初始化通信=============================
     // TODO 缺少重试
@@ -125,10 +134,12 @@ void loop() {
     constexpr unsigned long publishInterval = 3000; // 每3秒发布一次数据
 
     // 获取距离并判断车位状态
-    // int distance = sensor->getDistance();
-    // if (distance >= 140 && distance <= 280) {
-    //     occupyStatus = 1;
-    // }
+    int distance = sensor->getDistance();
+    if (distance >= 140 && distance <= 280) {
+        occupyStatus = 1;
+    }
+    if (!TEST_IGNORE_VL53L0X_FAILED) 
+        Log.verboseln("[VL53L0X] 距离%dmm", distance);
 
     // wifiHandler->scanAndPrintNetworks(); 
 

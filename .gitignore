@@ -2,3 +2,4 @@ libraries
 .DS_Store
 .vscode
 build
+config.h
