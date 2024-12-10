@@ -4,14 +4,16 @@
 OperationCode getOperationCode(const char* operation) {
     if (strcmp(operation, "modify_settings") == 0) {
         return OPERATION_MODIFY_SETTINGS;
+    } else if (strcmp(operation, "modify_status_reservation") == 0) {
+        return OPERATION_MODIFY_STATUS_RESERVATION;
     } else if (strcmp(operation, "sync_time") == 0) {
         return OPERATION_SYNIC_TIME;
     } else if (strcmp(operation, "reboot") == 0) {
         return OPERATION_REBOOT;
     } else if (strcmp(operation, "notify_led") == 0) {
         return OPERATION_NOTIFY_LED;
-    } else if (strcmp(operation, "check_status") == 0) {
-        return OPERATION_CHECK_STATUS;
+    } else if (strcmp(operation, "check_parking_status") == 0) {
+        return OPERATION_CHECK_PARKING_STATUS;
     } else if (strcmp(operation, "reset") == 0) {
         return OPERATION_RESET;
     } else if (strcmp(operation, "notify_alert") == 0) {
@@ -26,3 +28,4 @@ OperationCode getOperationCode(const char* operation) {
         return OPERATION_UNKNOWN;  // 未知的操作
     }
 }
+
