@@ -11,6 +11,7 @@ public:
     MQTTHandler(const char* serverAddress, uint16_t port,
                 const char* username = "", const char* password = "");
     void setCallback(void (*callback)(char*, byte*, unsigned int));
+    void setBufferSize(int size);
     bool connect();
     void subscribeTopic();
     void subscribeTopic(const char* topic);

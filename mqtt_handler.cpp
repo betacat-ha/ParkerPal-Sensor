@@ -17,6 +17,11 @@ void MQTTHandler::setCallback(void (*callback)(char *, byte *, unsigned int)) {
     _mqttClient.setCallback(callback);
 }
 
+void MQTTHandler::setBufferSize(int size) {
+    _mqttClient.setBufferSize(size);
+}
+
+
 bool MQTTHandler::connect() {
     String clientId = "esp8266-" + WiFi.macAddress();
     Log.noticeln("[MQTT] 连接到：%s", _serverAddress);
