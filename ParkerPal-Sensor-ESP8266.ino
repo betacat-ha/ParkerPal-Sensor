@@ -134,6 +134,11 @@ void loop() {
     static unsigned long lastPublishTime = 0;
     constexpr unsigned long publishInterval = 3000; // 每3秒发布一次数据
 
+    WiFiScanList list = wifiHandler->scanNetworks();
+    String listJson = fromJsonStruct(list);
+    Log.verboseln("[Wi-Fi] AP列表：%s", listJson.c_str());
+    mqttHandler->publishMessage(listJson.c_str());
+
     // 获取距离并判断车位状态
     int distance = sensor->getDistance();
     if (distance >= 140 && distance <= 280) {
@@ -142,17 +147,11 @@ void loop() {
     if (!TEST_IGNORE_VL53L0X_FAILED) 
         Log.verboseln("[VL53L0X] 距离%dmm", distance);
 
-    WiFiScanList list = wifiHandler->scanNetworks();
-    String listJson = fromJsonStruct(list);
-    Log.verboseln("[Wi-Fi] AP列表：%s", listJson.c_str());
-    mqttHandler->publishMessage(listJson.c_str());
-
-
     ParkingSpaceStatus parkingSpaceStatus = {
         .spaceName = spaceName,
         .occupyStatus = occupyStatus,
-        .reservationStatus = 0,
-        .distance = sensor->getDistance()
+        .reservationStatus = reservationStatus,
+        .distance = distance
     };
     Log.verboseln("[VL53L0X] 当前状态：%s", fromJsonStruct(parkingSpaceStatus).c_str());
 
