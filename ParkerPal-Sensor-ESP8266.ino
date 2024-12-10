@@ -54,8 +54,8 @@ constexpr int OCCUPY_THRESHOLD_MIN = 140; // 判断车位占用的最低界限
 constexpr int OCCUPY_THRESHOLD_MAX = 280; // 判断车位占用的最高界限
 
 String spaceName = "A-035"; // 车位名字
-int occupyStatus = 0; // 占用状态，0表示未占用；1表示被占用；
-int reservationStatus = 0; // 预约状态，0表示未被预约；1表示已被预约
+int occupyStatus = 0;       // 占用状态，0表示未占用；1表示被占用；
+int reservationStatus = 0;  // 预约状态，0表示未被预约；1表示已被预约
 
 void setup() {
     //=====================初始化串口==============================
@@ -80,7 +80,8 @@ void setup() {
         // 如果Wi-Fi连接成功，则初始化MQTTHandler
         mqttHandler = new MQTTHandler(MQTT_SERVER_ADDRESS, MQTT_SERVER_PORT,
                                       MQTT_SERVER_USER, MQTT_SERVER_PASSWORD);
-        // mqttHandler->setCallback(callback);
+        mqttHandler->setCallback(callback);
+        mqttHandler->setBufferSize(5120);
 
         if (mqttHandler->connect()) {
             mqttHandler->subscribeTopic();
@@ -141,28 +142,87 @@ void loop() {
     if (!TEST_IGNORE_VL53L0X_FAILED) 
         Log.verboseln("[VL53L0X] 距离%dmm", distance);
 
-    // wifiHandler->scanAndPrintNetworks(); 
-
     WiFiScanList list = wifiHandler->scanNetworks();
-    Log.noticeln(fromJsonStruct(list).c_str());
+    String listJson = fromJsonStruct(list);
+    Log.verboseln("[Wi-Fi] AP列表：%s", listJson.c_str());
+    mqttHandler->publishMessage(listJson.c_str());
+
+
+    ParkingSpaceStatus parkingSpaceStatus = {
+        .spaceName = spaceName,
+        .occupyStatus = occupyStatus,
+        .reservationStatus = 0,
+        .distance = sensor->getDistance()
+    };
+    Log.verboseln("[VL53L0X] 当前状态：%s", fromJsonStruct(parkingSpaceStatus).c_str());
+
+    // 组装消息并发布到MQTT服务器
+    if (millis() - lastPublishTime > publishInterval || 1) {
+        lastPublishTime = millis();
+        String message = fromJsonStruct(parkingSpaceStatus);
+        mqttHandler->publishMessage(message.c_str());
+    }
+
+    // 保持MQTT心跳
+    mqttHandler->loop();
     delay(3000);
+}
 
-    // ParkingSpaceStatus a = {
-    //     .spaceName = "",
-    //     .occupyStatus = 0,
-    //     .reservationStatus = 0,
-    //     .distance = 0.0f
-    // };
-    // Log.noticeln(fromJsonStruct(a).c_str());
+/**
+* MQTT收到信息后的回调函数
+*/
+void callback(char* topic, byte* payload, unsigned int length) {
+  char message[length + 1];
+  memcpy(message, payload, length);
+  message[length] = '\0';  // 添加字符串结束符
 
-    // // 组装消息并发布到MQTT服务器
-    // if (millis() - lastPublishTime > publishInterval) {
-    //     lastPublishTime = millis();
-    //     String message = assembleMQTTMessage("A-035", occupyStatus, 0);
-    //     mqttHandler->publishMessage(WiFi.macAddress().c_str(),
-    //     message.c_str());
-    // }
+  Log.verboseln("[MQTT] 接收到信息：[%s]%s (%u Bytes)", topic, message, length);
 
-    // // 保持MQTT心跳
-    // mqttHandler->loop();
+  // 初步处理数据
+  JsonDocument doc;                                            // Json数据
+  DeserializationError error = deserializeJson(doc, message);  // 反序列化Json
+
+  if (error) {
+    Log.errorln("[MQTT] Json数据解析失败：%s。", error.f_str());
+    return;
+  }
+
+  if (doc["code"] != 200) {
+    Log.errorln("[MQTT] 服务器返回错误信息：%s。", doc["msg"]);
+    return;
+  }
+
+  // 提取Data部分
+  JsonObject data = doc["data"];
+  const char* operation = data["operation"];
+  OperationCode code = getOperationCode(operation);
+
+  switch (code) {
+    case OPERATION_MODIFY_SETTINGS:
+      Log.noticeln("[MQTT] 服务器要求更新配置文件。");
+      break;
+    case OPERATION_SYNIC_TIME:
+      Log.noticeln("[MQTT] 服务器要求同步时间。");
+      break;
+    case OPERATION_REBOOT:
+      Log.noticeln("[MQTT] 服务器要求重启设备。");
+      Log.noticeln("[System] 3秒后重启设备。");
+      delay(3000);
+      ESP.restart();
+      break;
+    case OPERATION_CHECK_PARKING_STATUS:
+      Log.noticeln("[MQTT] 服务器要求上报车位状态。");
+    //   mqttHandler->publishMessage(getStatusJson());
+      break;
+    case OPERATION_CALIBRATE_SENSOR:
+      Log.noticeln("[MQTT] 服务器要求进行传感器校准。");
+    //   if (!VL53L0XSensor.calibrateSensor()) {
+    //     Log.errorln("[VL53L0X] 校准失败！");
+    //   }
+      break;
+    // 其他操作处理...
+    default:
+      Log.noticeln("[MQTT] 服务器发出了一个未知指令。");
+      break;
+  }
 }
