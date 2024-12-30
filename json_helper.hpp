@@ -4,12 +4,19 @@
 #include <ArduinoJson.h>
 
 constexpr int MAX_NETWORKS = 30;
+constexpr int MAX_SPACE = 10;
 
 struct ParkingSpaceStatus {
+    String id;
     String spaceName;
     int occupyStatus;
     int reservationStatus;
     float distance;
+};
+
+struct SpaceStatusList {
+    ParkingSpaceStatus spaces[MAX_SPACE];
+    int count;                            // 实际设置的位置数量
 };
 
 struct NetworkInfo {
@@ -23,6 +30,8 @@ struct WiFiScanList {
 };
 
 String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus);
+
+String fromJsonStruct(const SpaceStatusList& spaceStatusList);
 
 String fromJsonStruct(const WiFiScanList& wiFiScanList);
 

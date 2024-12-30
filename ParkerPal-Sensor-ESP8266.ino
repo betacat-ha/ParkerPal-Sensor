@@ -53,6 +53,7 @@ VL53L0XSensor *sensor = nullptr;
 constexpr int OCCUPY_THRESHOLD_MIN = 140; // 判断车位占用的最低界限
 constexpr int OCCUPY_THRESHOLD_MAX = 280; // 判断车位占用的最高界限
 
+String spaceId = "1";
 String spaceName = "A-035"; // 车位名字
 int occupyStatus = 0;       // 占用状态，0表示未占用；1表示被占用；
 int reservationStatus = 0;  // 预约状态，0表示未被预约；1表示已被预约
@@ -143,11 +144,15 @@ void loop() {
     int distance = sensor->getDistance();
     if (distance >= 140 && distance <= 280) {
         occupyStatus = 1;
+    } else {
+        occupyStatus = 0;
     }
+    
     if (!TEST_IGNORE_VL53L0X_FAILED) 
         Log.verboseln("[VL53L0X] 距离%dmm", distance);
 
     ParkingSpaceStatus parkingSpaceStatus = {
+        .id = spaceId,
         .spaceName = spaceName,
         .occupyStatus = occupyStatus,
         .reservationStatus = reservationStatus,

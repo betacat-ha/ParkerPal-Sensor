@@ -7,11 +7,43 @@
  */
 String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus) {
     StaticJsonDocument<256> doc;
-    doc["type"] = "VL53L0X";
+
+    // 设置消息类型
+    doc["type"] = "space_status";
+
+    // 设备属性
+    doc["deviceId"] = "1";
+    doc["deviceMacAddress"] = "F4:CF:A2:68:56:73";
+
+    doc["id"] = parkingSpaceStatus.id.c_str();
     doc["spaceName"] = parkingSpaceStatus.spaceName.c_str();
     doc["occupyStatus"] = parkingSpaceStatus.occupyStatus;
     doc["reservationStatus"] = parkingSpaceStatus.reservationStatus;
     doc["distance"] = parkingSpaceStatus.distance;
+
+    String output;
+    serializeJson(doc, output);
+    return output;
+}
+
+/**
+ * @brief 转换spaceStatusList结构体为JSON字符串
+ * @param spaceStatusList
+ * @return JSON字符串
+ */
+String fromJsonStruct(const SpaceStatusList& spaceStatusList) {
+    StaticJsonDocument<256> doc;
+    doc["type"] = "space_status_list";
+
+    JsonArray spaceStatusArray = doc.createNestedArray("spaces");
+
+    for (int i = 0; i < spaceStatusList.count; ++i) {
+        JsonObject spaceStatusObj = spaceStatusArray.createNestedObject();
+        spaceStatusObj["id"] = spaceStatusList.spaces[i].id.c_str();
+        spaceStatusObj["occupyStatus"] = spaceStatusList.spaces[i].occupyStatus;
+    }
+    doc["count"] = spaceStatusList.count;
+
 
     String output;
     serializeJson(doc, output);

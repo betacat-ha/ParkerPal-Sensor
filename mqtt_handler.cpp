@@ -56,7 +56,7 @@ void MQTTHandler::subscribeTopic(const char *topic) {
 * 订阅默认主题
 */
 void MQTTHandler::subscribeTopic() {
-    String topicString = "Sensor-Sub-" + WiFi.macAddress();
+    String topicString = "/parkerpal/Sensor-Sub-" + WiFi.macAddress();
     char subTopic[topicString.length() + 1];
     strcpy(subTopic, topicString.c_str());
 
@@ -75,7 +75,7 @@ void MQTTHandler::publishMessage(const char *topic, const char *message) {
 * 使用默认主题发送信息
 */
 void MQTTHandler::publishMessage(const char *message) {
-    String topicString = "Sensor-Pub-" + WiFi.macAddress();
+    String topicString = "/parkerpal/Sensor-Pub-" + WiFi.macAddress();
     char pubTopic[topicString.length() + 1];
     strcpy(pubTopic, topicString.c_str());
 
