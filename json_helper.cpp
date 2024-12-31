@@ -13,12 +13,12 @@ String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus) {
 
     // 设备属性
     doc["deviceId"] = "1";
-    doc["deviceMacAddress"] = "F4:CF:A2:68:56:73";
+    // doc["deviceMacAddress"] = "F4:CF:A2:68:56:73";
 
     doc["id"] = parkingSpaceStatus.id.c_str();
-    doc["spaceName"] = parkingSpaceStatus.spaceName.c_str();
-    doc["occupyStatus"] = parkingSpaceStatus.occupyStatus;
-    doc["reservationStatus"] = parkingSpaceStatus.reservationStatus;
+    // doc["spaceName"] = parkingSpaceStatus.spaceName.c_str();
+    doc["isParked"] = parkingSpaceStatus.occupyStatus == 1 ? true : false;
+    // doc["reservationStatus"] = parkingSpaceStatus.reservationStatus;
     doc["distance"] = parkingSpaceStatus.distance;
 
     String output;
