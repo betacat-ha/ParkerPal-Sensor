@@ -24,6 +24,8 @@ OperationCode getOperationCode(const char* operation) {
         return OPERATION_TOGGLE_SENSOR_MODE;
     } else if (strcmp(operation, "calibrate_sensor") == 0) {
         return OPERATION_CALIBRATE_SENSOR;
+    } else if (strcmp(operation, "configuration") == 0) {
+        return OPERATION_CONFIGURATION;
     } else {
         return OPERATION_UNKNOWN;  // 未知的操作
     }

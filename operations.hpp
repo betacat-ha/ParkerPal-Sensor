@@ -15,7 +15,8 @@ enum OperationCode {
     OPERATION_SCAN_WIFI,                 // 扫描附近Wi-Fi
     OPERATION_UPDATE_FIRMWARE,           // 更新固件
     OPERATION_TOGGLE_SENSOR_MODE,        // 切换传感器工作模式
-    OPERATION_CALIBRATE_SENSOR           // 校准传感器
+    OPERATION_CALIBRATE_SENSOR,          // 校准传感器
+    OPERATION_CONFIGURATION              // 配置设备
 };
 
 // 声明 getOperationCode 函数

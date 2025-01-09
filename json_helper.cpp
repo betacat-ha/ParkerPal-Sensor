@@ -17,7 +17,7 @@ String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus) {
 
     doc["id"] = parkingSpaceStatus.id.c_str();
     // doc["spaceName"] = parkingSpaceStatus.spaceName.c_str();
-    doc["isParked"] = parkingSpaceStatus.occupyStatus == 1 ? true : false;
+    doc["isOccupied"] = parkingSpaceStatus.occupyStatus == 1 ? true : false;
     // doc["reservationStatus"] = parkingSpaceStatus.reservationStatus;
     doc["distance"] = parkingSpaceStatus.distance;
 
@@ -33,14 +33,20 @@ String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus) {
  */
 String fromJsonStruct(const SpaceStatusList& spaceStatusList) {
     StaticJsonDocument<256> doc;
+    
+    // 设置消息类型
     doc["type"] = "space_status_list";
+
+    // 设备属性
+    doc["deviceId"] = "1";
 
     JsonArray spaceStatusArray = doc.createNestedArray("spaces");
 
     for (int i = 0; i < spaceStatusList.count; ++i) {
         JsonObject spaceStatusObj = spaceStatusArray.createNestedObject();
         spaceStatusObj["id"] = spaceStatusList.spaces[i].id.c_str();
-        spaceStatusObj["occupyStatus"] = spaceStatusList.spaces[i].occupyStatus;
+        doc["isOccupied"] = spaceStatusList.spaces[i].occupyStatus == 1 ? true : false;
+        doc["distance"] = spaceStatusList.spaces[i].distance;
     }
     doc["count"] = spaceStatusList.count;
 

@@ -6,6 +6,13 @@
 constexpr int MAX_NETWORKS = 30;
 constexpr int MAX_SPACE = 10;
 
+struct DeviceStatus {
+    String id;
+    String name;
+    String type;
+    String status;
+};
+
 struct ParkingSpaceStatus {
     String id;
     String spaceName;
