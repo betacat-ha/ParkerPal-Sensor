@@ -54,9 +54,10 @@ constexpr int OCCUPY_THRESHOLD_MIN = 140; // 判断车位占用的最低界限
 constexpr int OCCUPY_THRESHOLD_MAX = 280; // 判断车位占用的最高界限
 
 String spaceId = "1";
-String spaceName = "A-035"; // 车位名字
-int occupyStatus = 0;       // 占用状态，0表示未占用；1表示被占用；
-int reservationStatus = 0;  // 预约状态，0表示未被预约；1表示已被预约
+String spaceName = "A-035";   // 车位名字
+int occupyStatus = 0;         // 占用状态，0表示未占用；1表示被占用；
+int reportedOccupyStatus = 0; // 上一次上报给服务器的占用状态
+int reservationStatus = 0;    // 预约状态，0表示未被预约；1表示已被预约
 
 void setup() {
     //=====================初始化串口==============================

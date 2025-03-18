@@ -8,13 +8,12 @@ VL53L0XSensor::VL53L0XSensor() {
 
 int VL53L0XSensor::getDistance() {
     VL53L0X_RangingMeasurementData_t measure;
-    _lox.rangingTest(&measure, false);
-    if (measure.RangeStatus != 4) {
-        int distance = measure.RangeMilliMeter - _distanceCalibration;
-        if (distance > 0) {
-            return distance;
-        }
-    }
+    if (_lox.begin()) {
+        _lox.rangingTest(&measure, false);
+        return measure.RangeMilliMeter;
+      }
+    
+      // 未知异常返回-1
     return -1;
 }
 
