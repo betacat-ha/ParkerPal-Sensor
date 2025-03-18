@@ -31,7 +31,7 @@ constexpr bool TestExit = false; //硬件测试完成后是否退出
 
 //调试开关
 bool Test = true;
-const bool TEST_IGNORE_VL53L0X_FAILED = true;
+const bool TEST_IGNORE_VL53L0X_FAILED = false;
 
 //=======================物联网部分============================
 const char *WIFI_SSID = CONF_WIFI_SSID;         // Wi-Fi接入点的名字，最多可以包含32个字符
@@ -53,7 +53,7 @@ VL53L0XSensor *sensor = nullptr;
 constexpr int OCCUPY_THRESHOLD_MIN = 140; // 判断车位占用的最低界限
 constexpr int OCCUPY_THRESHOLD_MAX = 280; // 判断车位占用的最高界限
 
-String spaceId = "1";
+String spaceId = "70162";
 String spaceName = "A-035";   // 车位名字
 int occupyStatus = 0;         // 占用状态，0表示未占用；1表示被占用；
 int reportedOccupyStatus = 0; // 上一次上报给服务器的占用状态
