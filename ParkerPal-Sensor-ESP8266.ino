@@ -6,6 +6,7 @@
 #include "log_helper.hpp"
 #include "mqtt_handler.hpp"
 #include "operations.hpp"
+#include "system.hpp"
 #include "vl53l0x_sensor.hpp"
 #include "wifi_handler.hpp"
 #include <ArduinoLog.h>
@@ -14,17 +15,18 @@
 
 // 配置文件
 #if __has_include("config.h")
-  // 如果存在 config.h，则优先包含
-  #include "config.h"
+// 如果存在 config.h，则优先包含
+#include "config.h"
 #else
-  // 如果不存在 config.h，则回退到 config_template.h
-  #include "config_template.h"
+// 如果不存在 config.h，则回退到 config_template.h
+#include "config_template.h"
 #endif
 
 //=======================基础设置==========================
 // 串口通信部分
 int SerialData = 0; //串口传入数据
 String comdata = "";
+SystemSettings settings;
 
 //=========================调试设置============================
 constexpr bool TestExit = false; //硬件测试完成后是否退出
@@ -53,8 +55,8 @@ VL53L0XSensor *sensor = nullptr;
 constexpr int OCCUPY_THRESHOLD_MIN = 140; // 判断车位占用的最低界限
 constexpr int OCCUPY_THRESHOLD_MAX = 280; // 判断车位占用的最高界限
 
-String spaceId = "70162";
-String spaceName = "A-035";   // 车位名字
+// String spaceId = "70162";
+// String spaceName = "A-035"; // 车位名字
 int occupyStatus = 0;         // 占用状态，0表示未占用；1表示被占用；
 int reportedOccupyStatus = 0; // 上一次上报给服务器的占用状态
 int reservationStatus = 0;    // 预约状态，0表示未被预约；1表示已被预约
@@ -73,6 +75,24 @@ void setup() {
     //=====================初始化日志框架==========================
     initLog();
 
+    if (!isDeviceConfigured()) {
+        // 连接默认配置Wi-Fi
+        // 请求配置
+        Log.noticeln("[System] 设备未配置，请求配置文件。");
+    } else {
+        // 加载配置
+        loadConfig(settings);
+        Log.noticeln("[System] 设备已配置，设备名：%s",
+                     settings.deviceSettings.deviceName.c_str());
+        Log.noticeln("[System] 停车位信息：共%d个",
+                     settings.parkingSpaceList.count);
+        for (int i = 0; i < settings.parkingSpaceList.count; ++i) {
+            Log.verboseln(
+                "[System] 车位%d：id(%s),name(%s)", i + 1,
+                settings.parkingSpaceList.spaces[i].id,
+                settings.parkingSpaceList.spaces[i].spaceName.c_str());
+        }
+    }
 
     //=====================初始化通信=============================
     // TODO 缺少重试
@@ -136,10 +156,10 @@ void loop() {
     static unsigned long lastPublishTime = 0;
     constexpr unsigned long publishInterval = 3000; // 每3秒发布一次数据
 
-    WiFiScanList list = wifiHandler->scanNetworks();
-    String listJson = fromJsonStruct(list);
-    Log.verboseln("[Wi-Fi] AP列表：%s", listJson.c_str());
-    mqttHandler->publishMessage(listJson.c_str());
+    // WiFiScanList list = wifiHandler->scanNetworks();
+    // String listJson = fromJsonStruct(list);
+    // Log.verboseln("[Wi-Fi] AP列表：%s", listJson.c_str());
+    // mqttHandler->publishMessage(listJson.c_str());
 
     // 获取距离并判断车位状态
     int distance = sensor->getDistance();
@@ -148,13 +168,13 @@ void loop() {
     } else {
         occupyStatus = 0;
     }
-    
-    if (!TEST_IGNORE_VL53L0X_FAILED) 
+
+    if (!TEST_IGNORE_VL53L0X_FAILED)
         Log.verboseln("[VL53L0X] 距离%dmm", distance);
 
     ParkingSpaceStatus parkingSpaceStatus = {
-        .id = spaceId,
-        .spaceName = spaceName,
+        .id = settings.parkingSpaceList.spaces[0].id,
+        .spaceName = settings.parkingSpaceList.spaces[0].spaceName,
         .occupyStatus = occupyStatus,
         .reservationStatus = reservationStatus,
         .distance = distance
@@ -174,60 +194,67 @@ void loop() {
 }
 
 /**
-* MQTT收到信息后的回调函数
-*/
-void callback(char* topic, byte* payload, unsigned int length) {
-  char message[length + 1];
-  memcpy(message, payload, length);
-  message[length] = '\0';  // 添加字符串结束符
+ * MQTT收到信息后的回调函数
+ */
+void callback(char *topic, byte *payload, unsigned int length) {
+    char message[length + 1];
+    memcpy(message, payload, length);
+    message[length] = '\0'; // 添加字符串结束符
 
-  Log.verboseln("[MQTT] 接收到信息：[%s]%s (%u Bytes)", topic, message, length);
+    Log.verboseln("[MQTT] 接收到信息：[%s]%s (%u Bytes)", topic, message, length);
 
-  // 初步处理数据
-  JsonDocument doc;                                            // Json数据
-  DeserializationError error = deserializeJson(doc, message);  // 反序列化Json
+    // 初步处理数据
+    JsonDocument doc;                                           // Json数据
+    DeserializationError error = deserializeJson(doc, message); // 反序列化Json
 
-  if (error) {
-    Log.errorln("[MQTT] Json数据解析失败：%s。", error.f_str());
-    return;
-  }
+    if (error) {
+        Log.errorln("[MQTT] Json数据解析失败：%s。", error.f_str());
+        return;
+    }
 
-  if (doc["code"] != 200) {
-    Log.errorln("[MQTT] 服务器返回错误信息：%s。", doc["msg"]);
-    return;
-  }
+    if (doc["code"] != 200) {
+        Log.errorln("[MQTT] 服务器返回错误信息：%s。", doc["msg"]);
+        return;
+    }
 
-  // 提取Data部分
-  JsonObject data = doc["data"];
-  const char* operation = data["operation"];
-  OperationCode code = getOperationCode(operation);
+    // 提取Data部分
+    JsonObject data = doc["data"];
+    const char *operation = data["operation"];
+    OperationCode code = getOperationCode(operation);
 
-  switch (code) {
+    switch (code) {
     case OPERATION_MODIFY_SETTINGS:
-      Log.noticeln("[MQTT] 服务器要求更新配置文件。");
-      break;
+        Log.noticeln("[MQTT] 服务器要求更新配置文件。");
+        break;
+    case OPERATION_CONFIGURATION:
+        Log.noticeln("[MQTT] 服务器要求配置设备。");
+        saveServerConfig(data);
+        break;
     case OPERATION_SYNIC_TIME:
-      Log.noticeln("[MQTT] 服务器要求同步时间。");
-      break;
+        Log.noticeln("[MQTT] 服务器要求同步时间。");
+        break;
     case OPERATION_REBOOT:
-      Log.noticeln("[MQTT] 服务器要求重启设备。");
-      Log.noticeln("[System] 3秒后重启设备。");
-      delay(3000);
-      ESP.restart();
-      break;
+        Log.noticeln("[MQTT] 服务器要求重启设备。");
+        Log.noticeln("[System] 3秒后重启设备。");
+        delay(3000);
+        ESP.restart();
+        break;
     case OPERATION_CHECK_PARKING_STATUS:
-      Log.noticeln("[MQTT] 服务器要求上报车位状态。");
-    //   mqttHandler->publishMessage(getStatusJson());
-      break;
+        Log.noticeln("[MQTT] 服务器要求上报车位状态。");
+        //   mqttHandler->publishMessage(getStatusJson());
+        break;
     case OPERATION_CALIBRATE_SENSOR:
-      Log.noticeln("[MQTT] 服务器要求进行传感器校准。");
-    //   if (!VL53L0XSensor.calibrateSensor()) {
-    //     Log.errorln("[VL53L0X] 校准失败！");
-    //   }
-      break;
-    // 其他操作处理...
+        Log.noticeln("[MQTT] 服务器要求进行传感器校准。");
+        //   if (!VL53L0XSensor.calibrateSensor()) {
+        //     Log.errorln("[VL53L0X] 校准失败！");
+        //   }
+        break;
+    case OPERATION_UPDATE_FIRMWARE:
+        Log.noticeln("[MQTT] 服务器要求更新固件。");
+        break;
+        // 其他操作处理...
     default:
-      Log.noticeln("[MQTT] 服务器发出了一个未知指令。");
-      break;
-  }
+        Log.noticeln("[MQTT] 服务器发出了一个未知指令。");
+        break;
+    }
 }

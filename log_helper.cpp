@@ -32,7 +32,7 @@ bool initLog() {
         // Log.setSuffix([](Print* _logOutput, int logLevel) { _logOutput->println(); });
         
         // 初始化日志库
-        Log.begin(LOG_LEVEL_VERBOSE, &Serial);
+        Log.begin(LOG_LEVEL_INFO, &Serial);
         Log.setShowLevel(false); // 不显示内置日志级别，因为我们已经在前缀中处理了
         
         Log.noticeln("[Log] 日志框架初始化完成！");
