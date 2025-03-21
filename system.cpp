@@ -125,6 +125,7 @@ void loadParkingSpaceConfig(ParkingSpaceList &settings) {
 bool isDeviceConfigured() {
     DeviceSettings settings;
     loadDeviceConfig(settings);
+    Log.verboseln("[System] 设备状态：%d", settings.deviceStatus);
     return settings.deviceStatus == 1;
 }
 
@@ -140,38 +141,6 @@ void setDeviceConfigured() {
 
 /**
  * 保存从服务器获取的配置
- * @param json 从服务器获取的配置-String
- */
-void saveServerConfig(const char *json) {
-    DynamicJsonDocument doc(1024);
-    DeserializationError error = deserializeJson(doc, json);
-    if (error) {
-        Log.errorln("[System] 服务器配置解析失败：%s", error.c_str());
-        return;
-    }
-
-    // 保存设备配置
-    DeviceSettings deviceSettings;
-    loadDeviceConfig(deviceSettings);
-    deviceSettings.deviceName = doc["name"].as<String>();
-    deviceSettings.deviceType = doc["role"].as<String>();
-    deviceSettings.deviceLocation = doc["location"].as<String>();
-    deviceSettings.deviceStatus = 1;
-    saveDeviceConfig(deviceSettings);
-
-    // 保存停车位配置
-    ParkingSpaceList parkingSpaceList;
-    parkingSpaceList.count = doc["parkingSpaces"].size();
-    for (int i = 0; i < parkingSpaceList.count; ++i) {
-        parkingSpaceList.spaces[i].id = doc["parkingSpaces"][i]["id"].as<String>();
-        parkingSpaceList.spaces[i].spaceName = doc["parkingSpaces"][i]["name"].as<String>();
-        parkingSpaceList.spaces[i].slot = doc["parkingSpaces"][i]["slot"].as<int>();
-    }
-    saveParkingSpaceConfig(parkingSpaceList);
-}
-
-/**
- * 保存从服务器获取的配置
  * @param doc 从服务器获取的配置-JsonObject
  */
 void saveServerConfig(const JsonObject &doc) {
@@ -182,7 +151,6 @@ void saveServerConfig(const JsonObject &doc) {
     deviceSettings.deviceName = doc["name"].as<String>();
     deviceSettings.deviceType = doc["role"].as<String>();
     deviceSettings.deviceLocation = doc["location"].as<String>();
-    deviceSettings.deviceStatus = 1;
     saveDeviceConfig(deviceSettings);
 
     // 保存停车位配置
@@ -204,6 +172,8 @@ void saveServerConfig(const JsonObject &doc) {
     mqttSettings.serverPassword = doc["mqtt"]["serverPassword"].as<String>();
     saveMQTTConfig(mqttSettings);
 
+    setDeviceConfigured();
+
     Log.verboseln("[System] 保存服务器配置成功。");
 }
 
@@ -222,4 +192,6 @@ void eraseAllConfig() {
     preferences.begin("parkingSpace", false);
     preferences.clear();
     preferences.end();
+
+    ESP.eraseConfig();
 }

@@ -44,7 +44,7 @@ bool WiFiHandler::connect(bool overrideSmartConfig) {
     
     // 使用格式化字符串构建日志信息
     char buffer[64]; // 假设最大缓冲区大小为64字节
-    snprintf(buffer, sizeof(buffer), "[Wi-Fi] 连接到 %s", _ssid);
+    snprintf(buffer, sizeof(buffer), "[Wi-Fi] 连接到 %s, 密码 %s", WiFi.SSID().c_str(), WiFi.psk().c_str());
     Log.noticeln("%s", buffer);
 
     int retry = 0;

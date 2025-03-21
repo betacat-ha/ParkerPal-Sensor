@@ -118,7 +118,8 @@ void setup() {
         settings.deviceSettings.deviceMAC + "\"}").c_str());
 
     Log.noticeln("[System] 等待服务器配置...");
-    while (isDeviceConfigured()) {
+    while (!isDeviceConfigured()) {
+        mqttHandler->loop();    // 保持MQTT心跳
         system_soft_wdt_feed(); // 喂狗，防止复位
         delay(1000);
     }
