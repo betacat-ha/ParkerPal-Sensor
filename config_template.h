@@ -10,6 +10,8 @@
 #define CONF_MQTT_SERVER_PASSWORD "your_mqtt_server_password"
 #define CONF_MQTT_SERVER_PORT your_mqtt_server_port
 
+#define CONF_SWITCH_REST D7                     // 复位按键引脚
+
 // 调试设置
 #define CONF_TEST_EXIT false                    // 硬件测试完成后是否退出
 #define CONF_TEST_IGNORE_VL53L0X_FAILED false   // 是否忽略VL53L0X传感器初始化失败，并禁用一些功能

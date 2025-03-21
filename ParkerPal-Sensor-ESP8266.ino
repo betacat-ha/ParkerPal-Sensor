@@ -55,6 +55,19 @@ int reservationStatus = 0;    // 预约状态，0表示未被预约；1表示已
 void setup() {
     //=====================初始化串口==============================
     Serial.begin(115200);
+
+    // 检查复位按键是否被按下
+    pinMode(CONF_SWITCH_REST, INPUT_PULLUP);
+    if (digitalRead(CONF_SWITCH_REST) == LOW) {
+        delay(3000);
+        if (digitalRead(CONF_SWITCH_REST) == LOW) {
+            Serial.print("\n[System] 复位按键被按下，清除设备配置...");
+            eraseAllConfig();
+            delay(1000);
+            ESP.restart();
+        }
+    }
+
     delay(1000);
 
     // 出现此消息代表串口通信正常
