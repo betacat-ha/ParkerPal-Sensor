@@ -3,11 +3,45 @@
 WiFiHandler::WiFiHandler(const char* ssid, const char* password) 
     : _ssid(ssid), _password(password) {} // 初始化
 
+bool WiFiHandler::smartConfig() {
+    WiFi.mode(WIFI_STA);
+    WiFi.beginSmartConfig();
+
+    Log.noticeln("[Wi-Fi] 启动智能配网...");
+
+    while (!WiFi.smartConfigDone()) {
+        delay(500);
+        Log.verboseln("[Wi-Fi] 等待智能配网...");
+    }
+
+    Log.noticeln("[Wi-Fi] 智能配网完成！");
+
+    // 连接到Wi-Fi
+    return connect(false);
+}
+
+/**
+ * @brief 连接到Wi-Fi
+ * @return 是否连接成功
+ */
 bool WiFiHandler::connect() {
+    return connect(false);
+}
+
+/**
+ * @brief 连接到Wi-Fi
+ * @param overrideSmartConfig 是否覆盖智能配网，值为true则使用该类初始化时的SSID和密码
+ * @return 是否连接成功
+ */
+bool WiFiHandler::connect(bool overrideSmartConfig) {
     // 设置WiFi模式为Station模式
     WiFi.mode(WIFI_STA);
-    WiFi.begin(_ssid, _password);
-
+    if (overrideSmartConfig) {
+        WiFi.begin(_ssid, _password);
+    } else {
+        WiFi.begin();
+    }
+    
     // 使用格式化字符串构建日志信息
     char buffer[64]; // 假设最大缓冲区大小为64字节
     snprintf(buffer, sizeof(buffer), "[Wi-Fi] 连接到 %s", _ssid);
@@ -20,17 +54,30 @@ bool WiFiHandler::connect() {
         Log.verboseln("%s", buffer);
     }
 
-    if (WiFi.status() == WL_CONNECTED) {
-        Log.noticeln("[Wi-Fi] 已连接！");
+    bool connected = WiFi.status() == WL_CONNECTED;
 
-        // 打印IP地址
-        snprintf(buffer, sizeof(buffer), "[Wi-Fi] IP地址：%s", WiFi.localIP().toString().c_str());
-        Log.noticeln("%s", buffer);
-        return true;
-    } else {
+    if (!connected && overrideSmartConfig) {
         Log.errorln("[Wi-Fi] 无法连接至Wi-Fi.");
         return false;
     }
+
+    if (!connected && !overrideSmartConfig) {
+        if (_configRetryTimes <= 0) {
+            Log.errorln("[Wi-Fi] 多次配网仍无法连接，请检查Wi-Fi配置！");
+            return false;
+        }
+        
+        Log.errorln("[Wi-Fi] 无法连接至Wi-Fi，启动智能配网...");
+        _configRetryTimes--;
+        return smartConfig();
+    }
+
+    Log.noticeln("[Wi-Fi] 已连接！");
+
+    // 打印IP地址
+    snprintf(buffer, sizeof(buffer), "[Wi-Fi] IP地址：%s", WiFi.localIP().toString().c_str());
+    Log.noticeln("%s", buffer);
+    return true;
 }
 
 int WiFiHandler::getRSSI() {

@@ -15,6 +15,6 @@ String localizableWLStatus(wl_status_t status);
 void printPrefix(Print* _logOutput, int logLevel);
 
 // 检查并初始化日志库（如果尚未初始化）
-bool initLog();
+bool initLog(int level);
 
 #endif // LOG_HELPER_HPP

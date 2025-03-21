@@ -22,16 +22,10 @@ struct DeviceSettings {
     int deviceStatus; // 设备状态，1表示初始化完成，0表示未初始化，-1表示状态未知
 };
 
-// AP设置
-struct APSettings {
-    String SSID;
-    String Password;
-};
-
 // MQTT设置
 struct MQTTSettings {
     String serverIP;
-    String serverPort;
+    int serverPort;
     String serverUser;
     String serverPassword;
 };
@@ -52,23 +46,21 @@ struct ParkingSpaceList {
 // 系统设置
 struct SystemSettings {
     DeviceSettings deviceSettings;
-    APSettings apSettings;
     MQTTSettings mqttSettings;
     ParkingSpaceList parkingSpaceList;
 };
 
 void saveConfig(const SystemSettings &settings);
 void saveDeviceConfig(const DeviceSettings &settings);
-void saveAPConfig(const APSettings &settings);
 void saveMQTTConfig(const MQTTSettings &settings);
 void saveParkingSpaceConfig(const ParkingSpaceList &settings);
 void loadConfig(SystemSettings &settings);
 void loadDeviceConfig(DeviceSettings &settings);
-void loadAPConfig(APSettings &settings);
 void loadMQTTConfig(MQTTSettings &settings);
 void loadParkingSpaceConfig(ParkingSpaceList &settings);
 bool isDeviceConfigured();
 void setDeviceConfigured();
 void saveServerConfig(const char *json);
 void saveServerConfig(const JsonObject &doc);
+void eraseAllConfig();
 #endif // SYSTEM_HPP

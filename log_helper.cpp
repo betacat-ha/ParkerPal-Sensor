@@ -24,15 +24,20 @@ String localizableWLStatus(wl_status_t status) {
   }
 }
 
-bool initLog() {
+/**
+ * 检查并初始化日志库（如果尚未初始化）
+ * @param level 日志级别
+ * @return 是否初始化成功
+ */
+bool initLog(int level) {
     static bool initialized = false;
     if (!initialized) {
         // 设置日志前缀和后缀函数
         Log.setPrefix(printPrefix); // 使用自定义的前缀打印函数
         // Log.setSuffix([](Print* _logOutput, int logLevel) { _logOutput->println(); });
-        
+
         // 初始化日志库
-        Log.begin(LOG_LEVEL_INFO, &Serial);
+        Log.begin(level, &Serial);
         Log.setShowLevel(false); // 不显示内置日志级别，因为我们已经在前缀中处理了
         
         Log.noticeln("[Log] 日志框架初始化完成！");

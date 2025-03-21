@@ -28,16 +28,7 @@ int SerialData = 0; //串口传入数据
 String comdata = "";
 SystemSettings settings;
 
-//=========================调试设置============================
-constexpr bool TestExit = false; //硬件测试完成后是否退出
-
-//调试开关
-bool Test = true;
-const bool TEST_IGNORE_VL53L0X_FAILED = false;
-
 //=======================物联网部分============================
-const char *WIFI_SSID = CONF_WIFI_SSID;         // Wi-Fi接入点的名字，最多可以包含32个字符
-const char *WIFI_PASSWORD = CONF_WIFI_PASSWORD; // Wi-Fi接入点的密码，长度至少应为8个字符且不超过64个字符
 // const char * WIFI_CHANNEL                       // Wi-Fi接入点的频道，可选
 // const char * WIFI_BSSID                         // Wi-Fi接入点的MAC地址，可选
 WiFiHandler *wifiHandler = nullptr;
@@ -73,48 +64,13 @@ void setup() {
     Serial.print("================================\n");
 
     //=====================初始化日志框架==========================
-    initLog();
-
-    if (!isDeviceConfigured()) {
-        // 连接默认配置Wi-Fi
-        // 请求配置
-        Log.noticeln("[System] 设备未配置，请求配置文件。");
-    } else {
-        // 加载配置
-        loadConfig(settings);
-        Log.noticeln("[System] 设备已配置，设备名：%s",
-                     settings.deviceSettings.deviceName.c_str());
-        Log.noticeln("[System] 停车位信息：共%d个",
-                     settings.parkingSpaceList.count);
-        for (int i = 0; i < settings.parkingSpaceList.count; ++i) {
-            Log.verboseln(
-                "[System] 车位%d：id(%s),name(%s)", i + 1,
-                settings.parkingSpaceList.spaces[i].id,
-                settings.parkingSpaceList.spaces[i].spaceName.c_str());
-        }
-    }
+    initLog(CONF_LOG_LEVEL);
 
     //=====================初始化通信=============================
     // TODO 缺少重试
-    wifiHandler = new WiFiHandler(WIFI_SSID, WIFI_PASSWORD);
+    wifiHandler = new WiFiHandler(CONF_WIFI_SSID, CONF_WIFI_PASSWORD);
 
-    if (wifiHandler->connect()) {
-        // 如果Wi-Fi连接成功，则初始化MQTTHandler
-        mqttHandler = new MQTTHandler(MQTT_SERVER_ADDRESS, MQTT_SERVER_PORT,
-                                      MQTT_SERVER_USER, MQTT_SERVER_PASSWORD);
-        mqttHandler->setCallback(callback);
-        mqttHandler->setBufferSize(5120);
-
-        if (mqttHandler->connect()) {
-            mqttHandler->subscribeTopic();
-        } else {
-            Log.errorln("[MQTT] 无法建立与服务器的连接。");
-            // 如果MQTT连接失败，进入死循环
-            while (1) {
-                system_soft_wdt_feed(); // 喂狗，防止复位
-            }
-        }
-    } else {
+    if (!wifiHandler->connect(CONF_WIFI_OVERRIDE_SMARTCONF)) {
         Log.errorln("[Wi-Fi] 无法建立与AP的连接。");
         // 如果Wi-Fi连接失败，进入死循环
         while (1) {
@@ -122,11 +78,76 @@ void setup() {
         }
     }
 
+    bool deviceConfigured = isDeviceConfigured();
+
+    if (!deviceConfigured) {
+        // 请求配置
+        Log.noticeln("[System] 设备未配置，MQTT服务器使用默认配置。");
+
+        settings.deviceSettings.deviceMAC = WiFi.macAddress();
+
+        settings.mqttSettings.serverIP = CONF_MQTT_SERVER_ADDRESS;
+        settings.mqttSettings.serverPort = CONF_MQTT_SERVER_PORT;
+        settings.mqttSettings.serverUser = CONF_MQTT_SERVER_USER;
+        settings.mqttSettings.serverPassword = CONF_MQTT_SERVER_PASSWORD;
+    } else {
+        // 加载配置
+        loadConfig(settings);
+    }
+
+    // 如果Wi-Fi连接成功，则初始化MQTTHandler
+    mqttHandler = new MQTTHandler(settings.mqttSettings.serverIP.c_str(), 
+                                  settings.mqttSettings.serverPort,
+                                  settings.mqttSettings.serverUser.c_str(), 
+                                  settings.mqttSettings.serverPassword.c_str());
+    mqttHandler->setCallback(callback);
+    mqttHandler->setBufferSize(5120);
+
+    if (!mqttHandler->connect()) {
+        Log.errorln("[MQTT] 无法建立与服务器的连接。");
+        // 如果MQTT连接失败，进入死循环
+        while (1) {
+            system_soft_wdt_feed(); // 喂狗，防止复位
+        }
+    }
+
+    mqttHandler->subscribeTopic();
+
+    // 请求服务器配置
+    mqttHandler->publishMessage(("{\"type\":\"configuration_request\",\"deviceMacAddress\":\"" +
+        settings.deviceSettings.deviceMAC + "\"}").c_str());
+
+    Log.noticeln("[System] 等待服务器配置...");
+    while (isDeviceConfigured()) {
+        system_soft_wdt_feed(); // 喂狗，防止复位
+        delay(1000);
+    }
+    Log.noticeln("[System] 服务器配置成功！");
+    loadConfig(settings);
+
+    // 如果是首次配置，重启 
+    if (!deviceConfigured) {
+        Log.noticeln("[System] 首次配置完成，重启设备。");
+        delay(1000);
+        ESP.restart();
+    }
+    
+    Log.noticeln("[System] 设备已配置，设备名：%s",
+        settings.deviceSettings.deviceName.c_str());
+    Log.noticeln("[System] 停车位信息：共%d个",
+        settings.parkingSpaceList.count);
+    for (int i = 0; i < settings.parkingSpaceList.count; ++i) {
+        Log.verboseln(
+            "[System] 车位%d：id(%s),name(%s)", i + 1,
+            settings.parkingSpaceList.spaces[i].id,
+            settings.parkingSpaceList.spaces[i].spaceName.c_str());
+    }
+
     //=====================初始化激光传感器========================
     sensor = new VL53L0XSensor();
     if (!sensor) {
         Log.errorln("[VL53L0X] 初始化失败！");
-        while (1 && !TEST_IGNORE_VL53L0X_FAILED) {
+        while (1 && !CONF_TEST_IGNORE_VL53L0X_FAILED) {
             system_soft_wdt_feed(); // 喂狗，防止复位
         }
     }
@@ -161,6 +182,7 @@ void loop() {
     // Log.verboseln("[Wi-Fi] AP列表：%s", listJson.c_str());
     // mqttHandler->publishMessage(listJson.c_str());
 
+    // TODO: 这里要适配多车位
     // 获取距离并判断车位状态
     int distance = sensor->getDistance();
     if (distance >= 140 && distance <= 280) {
@@ -169,9 +191,10 @@ void loop() {
         occupyStatus = 0;
     }
 
-    if (!TEST_IGNORE_VL53L0X_FAILED)
+    if (!CONF_TEST_IGNORE_VL53L0X_FAILED)
         Log.verboseln("[VL53L0X] 距离%dmm", distance);
 
+    // TODO: 这里要适配多车位
     ParkingSpaceStatus parkingSpaceStatus = {
         .id = settings.parkingSpaceList.spaces[0].id,
         .spaceName = settings.parkingSpaceList.spaces[0].spaceName,

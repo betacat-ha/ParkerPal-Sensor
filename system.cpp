@@ -8,7 +8,6 @@ Preferences preferences;
  */
 void saveConfig(const SystemSettings &settings) {
     saveDeviceConfig(settings.deviceSettings);
-    saveAPConfig(settings.apSettings);
     saveMQTTConfig(settings.mqttSettings);
     saveParkingSpaceConfig(settings.parkingSpaceList);
 }
@@ -34,24 +33,13 @@ void saveDeviceConfig(const DeviceSettings &settings) {
 }
 
 /**
- * 保存AP设置
- * @param settings AP设置
- */
-void saveAPConfig(const APSettings &settings) {
-    preferences.begin("ap", false);
-    preferences.putString("SSID", settings.SSID);
-    preferences.putString("Password", settings.Password);
-    preferences.end();
-}
-
-/**
  * 保存MQTT设置
  * @param settings MQTT设置
  */
 void saveMQTTConfig(const MQTTSettings &settings) {
     preferences.begin("mqtt", false);
     preferences.putString("serverIP", settings.serverIP);
-    preferences.putString("serverPort", settings.serverPort);
+    preferences.putInt("serverPort", settings.serverPort);
     preferences.putString("serverUser", settings.serverUser);
     preferences.putString("serverPassword", settings.serverPassword);
     preferences.end();
@@ -78,7 +66,6 @@ void saveParkingSpaceConfig(const ParkingSpaceList &settings) {
  */
 void loadConfig(SystemSettings &settings) {
     loadDeviceConfig(settings.deviceSettings);
-    loadAPConfig(settings.apSettings);
     loadMQTTConfig(settings.mqttSettings);
     loadParkingSpaceConfig(settings.parkingSpaceList);
 }
@@ -104,24 +91,13 @@ void loadDeviceConfig(DeviceSettings &settings) {
 }
 
 /**
- * 加载AP设置
- * @param settings AP设置
- */
-void loadAPConfig(APSettings &settings) {
-    preferences.begin("ap", true);
-    settings.SSID = preferences.getString("SSID", "");
-    settings.Password = preferences.getString("Password", "");
-    preferences.end();
-}
-
-/**
  * 加载MQTT设置
  * @param settings MQTT设置
  */
 void loadMQTTConfig(MQTTSettings &settings) {
     preferences.begin("mqtt", true);
     settings.serverIP = preferences.getString("serverIP", "");
-    settings.serverPort = preferences.getString("serverPort", "");
+    settings.serverPort = preferences.getInt("serverPort", 0);
     settings.serverUser = preferences.getString("serverUser", "");
     settings.serverPassword = preferences.getString("serverPassword", "");
     preferences.end();
@@ -218,5 +194,32 @@ void saveServerConfig(const JsonObject &doc) {
         parkingSpaceList.spaces[i].slot = doc["parkingSpaces"][i]["slot"].as<int>();
     }
     saveParkingSpaceConfig(parkingSpaceList);
+
+    // 保存MQTT配置
+    MQTTSettings mqttSettings;
+    loadMQTTConfig(mqttSettings);
+    mqttSettings.serverIP = doc["mqtt"]["serverIP"].as<String>();
+    mqttSettings.serverPort = doc["mqtt"]["serverPort"].as<int>();
+    mqttSettings.serverUser = doc["mqtt"]["serverUser"].as<String>();
+    mqttSettings.serverPassword = doc["mqtt"]["serverPassword"].as<String>();
+    saveMQTTConfig(mqttSettings);
+
     Log.verboseln("[System] 保存服务器配置成功。");
+}
+
+/**
+ * 擦除所有配置
+ */
+void eraseAllConfig() {
+    preferences.begin("device", false);
+    preferences.clear();
+    preferences.end();
+
+    preferences.begin("mqtt", false);
+    preferences.clear();
+    preferences.end();
+
+    preferences.begin("parkingSpace", false);
+    preferences.clear();
+    preferences.end();
 }
