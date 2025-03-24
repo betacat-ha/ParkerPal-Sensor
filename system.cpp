@@ -195,3 +195,22 @@ void eraseAllConfig() {
 
     ESP.eraseConfig();
 }
+
+/**
+ * 同步系统时间
+ */
+void syncSystemTime() {
+    configTime(8 * 3600, 0, "ntp1.aliyun.com", "ntp.ntsc.ac.cn", "cn.ntp.org.cn");
+    time_t now = time(nullptr);
+    while (now < 8 * 3600 * 2) {
+        delay(500);
+        now = time(nullptr);
+    }
+    struct tm timeinfo;
+    localtime_r(&now, &timeinfo);
+    char buffer[64]; // 假设最大缓冲区大小为64字节
+    snprintf(buffer, sizeof(buffer), "[System] 当前时间：%d-%02d-%02d %02d:%02d:%02d",
+        timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+        timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    Log.noticeln("%s", buffer);
+}

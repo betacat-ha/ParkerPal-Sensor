@@ -63,4 +63,5 @@ void setDeviceConfigured();
 void saveServerConfig(const char *json);
 void saveServerConfig(const JsonObject &doc);
 void eraseAllConfig();
+void syncSystemTime();
 #endif // SYSTEM_HPP
