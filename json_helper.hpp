@@ -37,7 +37,7 @@ struct WiFiScanList {
     int count;                            // 实际扫描到的网络数量
 };
 
-// Wi-Fi数据包结构
+// Wi-Fi探针数据包结构
 struct RxControl {
  signed rssi:8; // signal intensity of packet
  unsigned rate:4;
@@ -73,6 +73,13 @@ struct SnifferPacket{
     uint16_t len;
 };
 
+// Wi-Fi嗅探包列表
+struct SnifferPacketList {
+    SnifferPacket packets[MAX_NETWORKS];
+    int count;                            // 实际扫描到的网络数量
+};
+
+
 String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus);
 
 String fromJsonStruct(const SpaceStatusList& spaceStatusList);
@@ -82,6 +89,8 @@ String fromJsonStruct(const WiFiScanList& wiFiScanList);
 JsonObject getJsonObject(JsonDocument& doc, const ParkingSpaceStatus& parkingSpaceStatus);
 
 JsonObject getJsonObject(JsonDocument& doc, const WiFiScanList& wiFiScanList);
+
+JsonObject getJsonObject(JsonDocument& doc, const SnifferPacket& packet);
 
 JsonObject stringToJsonObject(JsonDocument& doc, const String& jsonString);
 

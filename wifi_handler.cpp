@@ -168,3 +168,56 @@ WiFiScanList WiFiHandler::scanNetworks(FilterFunction filter) {
     Log.noticeln("[Wi-Fi] 扫描完成（带过滤器）。");
     return list;
 }
+
+/**
+ * 处理抓包数据回调
+ */
+void ICACHE_FLASH_ATTR WiFiHandler::sniffer_callback(uint8_t* buffer,
+    uint16_t length) {
+    Serial.print("[Wi-Fi] 嗅探回调");
+    struct SnifferPacket* snifferPacket = (struct SnifferPacket*)buffer;
+    showMetadata(snifferPacket);
+}
+
+
+void WiFiHandler::printDataSpan(uint16_t start, uint16_t size, uint8_t* data) {
+    for (uint16_t i = start; i < DATA_LENGTH && i < start + size; i++) {
+        Serial.write(data[i]);
+    }
+}
+
+/**
+ * 获取嗅探包的MAC地址
+ */
+void WiFiHandler::getMAC(char* addr, uint8_t* data, uint16_t offset) {
+    sprintf(addr, "%02x:%02x:%02x:%02x:%02x:%02x", data[offset + 0],
+        data[offset + 1], data[offset + 2], data[offset + 3],
+        data[offset + 4], data[offset + 5]);
+}
+
+/**
+ * 信道切换函数
+ */
+void WiFiHandler::channelHop() {
+    // hoping channels 1-13
+    uint8 new_channel = wifi_get_channel() + 1;
+    if (new_channel > 13) {
+        new_channel = 1;
+    }
+
+    Serial.print("[Wi-Fi] 切换频道至：");
+    Serial.println(new_channel);
+
+    wifi_set_channel(new_channel);
+}
+
+/**
+ * 启动Wi-Fi嗅探器
+ */
+void WiFiHandler::startSniffer(wifi_promiscuous_cb_t cb) {
+    // 设置Wi-Fi模式为监听模式
+    wifi_set_opmode(STATION_MODE);
+    wifi_promiscuous_enable(0);
+    wifi_set_promiscuous_rx_cb(cb);
+    wifi_promiscuous_enable(1);
+}

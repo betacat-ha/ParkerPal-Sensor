@@ -141,3 +141,9 @@ JsonObject stringToJsonObject(JsonDocument& doc, const String& jsonString) {
     // 返回解析成功的 JsonObject
     return doc.as<JsonObject>();
 }
+
+/**
+ * 将 JSON 字符串解析为 JsonObject
+ * @param jsonString 输入的 JSON 字符串
+ * @return 返回解析得到的 JsonObject，解析失败时返回包含占位信息的 JsonObject
+ */
