@@ -17,7 +17,7 @@ String localizableWLStatus(wl_status_t status) {
     case WL_CONNECTED:      return "已连接";
     case WL_CONNECT_FAILED: return "连接失败";
     case WL_CONNECTION_LOST:return "失去连接";
-    case WL_WRONG_PASSWORD: return "错误的密码";
+    // case WL_WRONG_PASSWORD: return "错误的密码";
     case WL_DISCONNECTED:   return "已断开连接";
     case WL_IDLE_STATUS:    return "已休眠";
     default:                return "未知";

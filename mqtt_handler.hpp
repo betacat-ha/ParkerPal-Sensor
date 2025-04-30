@@ -1,8 +1,9 @@
 #ifndef MQTT_HANDLER_HPP
 #define MQTT_HANDLER_HPP
 
+#include "cross_platform.hpp"
 #include <PubSubClient.h>
-#include <ESP8266WiFi.h>
+#include WIFI_LIBRARY
 #include "log_helper.hpp"
 #include "operations.hpp"
 

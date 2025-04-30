@@ -1,9 +1,10 @@
 #ifndef LOG_HELPER_HPP
 #define LOG_HELPER_HPP
 
+#include "cross_platform.hpp"
 #include <Arduino.h>
 #include <ArduinoLog.h>
-#include <ESP8266WiFi.h>
+#include WIFI_LIBRARY
 
 // 声明日志级别名称
 extern const char* logLevelNames[];

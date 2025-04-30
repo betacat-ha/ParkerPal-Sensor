@@ -1,9 +1,11 @@
 #ifndef SYSTEM_HPP
 #define SYSTEM_HPP
 
+#include "cross_platform.hpp"
 #include "log_helper.hpp"
 #include <ArduinoJson.h>
-#include <Preferences.h> // by Volodymyr Shymanskyy
+#include <Preferences.h> // ESP8266 by Volodymyr Shymanskyy
+#include INTERNAL_STORAGE_LIBRARY
 
 constexpr int SLOT_AMOUNT = 4;
 

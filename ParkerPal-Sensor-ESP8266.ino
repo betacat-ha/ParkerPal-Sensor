@@ -2,6 +2,7 @@
   开发团队：智泊无忧硬件组
   立项时间：2024.8.30
 */
+#include "cross_platform.hpp"
 #include "json_helper.hpp"
 #include "log_helper.hpp"
 #include "mqtt_handler.hpp"
@@ -54,6 +55,7 @@ int reservationStatus = 0;    // 预约状态，0表示未被预约；1表示已
 
 void setup() {
     //=====================初始化串口==============================
+    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
     Serial.begin(115200);
 
     // 检查复位按键是否被按下
@@ -87,7 +89,7 @@ void setup() {
         Log.errorln("[Wi-Fi] 无法建立与AP的连接。");
         // 如果Wi-Fi连接失败，进入死循环
         while (1) {
-            system_soft_wdt_feed(); // 喂狗，防止复位
+            // system_soft_wdt_feed(); // 喂狗，防止复位
         }
     }
 
@@ -120,20 +122,19 @@ void setup() {
         Log.errorln("[MQTT] 无法建立与服务器的连接。");
         // 如果MQTT连接失败，进入死循环
         while (1) {
-            system_soft_wdt_feed(); // 喂狗，防止复位
+            // system_soft_wdt_feed(); // 喂狗，防止复位
         }
     }
 
     mqttHandler->subscribeTopic();
 
     // 请求服务器配置
-    mqttHandler->publishMessage(("{\"type\":\"configuration_request\",\"deviceMacAddress\":\"" +
-        settings.deviceSettings.deviceMAC + "\"}").c_str());
+    mqttHandler->publishMessage(("{\"type\":\"configuration_request\", \"deviceMacAddress\":\"" + settings.deviceSettings.deviceMAC + "\"}").c_str());
 
     Log.noticeln("[System] 等待服务器配置...");
     while (!isDeviceConfigured()) {
         mqttHandler->loop();    // 保持MQTT心跳
-        system_soft_wdt_feed(); // 喂狗，防止复位
+        // system_soft_wdt_feed(); // 喂狗，防止复位
         delay(1000);
     }
     Log.noticeln("[System] 服务器配置成功！");
@@ -162,7 +163,7 @@ void setup() {
     if (!sensor) {
         Log.errorln("[VL53L0X] 初始化失败！");
         while (1 && !CONF_TEST_IGNORE_VL53L0X_FAILED) {
-            system_soft_wdt_feed(); // 喂狗，防止复位
+            // system_soft_wdt_feed(); // 喂狗，防止复位
         }
     }
 
@@ -266,9 +267,6 @@ void callback(char *topic, byte *payload, unsigned int length) {
     OperationCode code = getOperationCode(operation);
 
     switch (code) {
-    case OPERATION_MODIFY_SETTINGS:
-        Log.noticeln("[MQTT] 服务器要求更新配置文件。");
-        break;
     case OPERATION_CONFIGURATION:
         Log.noticeln("[MQTT] 服务器要求配置设备。");
         saveServerConfig(data);

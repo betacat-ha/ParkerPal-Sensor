@@ -193,7 +193,12 @@ void eraseAllConfig() {
     preferences.clear();
     preferences.end();
 
+#ifdef ESP8266
     ESP.eraseConfig();
+#elif defined(ESP32)
+    nvs_flash_erase();           // 擦除整个 NVS 分区
+    nvs_flash_init();            // 重新初始化
+#endif
 }
 
 /**
