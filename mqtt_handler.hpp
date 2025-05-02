@@ -27,6 +27,9 @@ private:
     uint16_t _port;
     const char* _username;
     const char* _password;
+    const char* _clientId;
+    const char* _subTopic;
+    const char* _pubTopic;
 
     WiFiClient& getWiFiClient(); // 返回内部管理的WiFiClient实例
 };

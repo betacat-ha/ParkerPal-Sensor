@@ -111,10 +111,16 @@ void setup() {
     }
 
     // 如果Wi-Fi连接成功，则初始化MQTTHandler
+    String clientId = "Sensor-" + settings.deviceSettings.deviceMAC;
+    String subTopicString = "/parkerpal/Sensor-Sub-" + settings.deviceSettings.deviceMAC;
+    String pubTopicString = "/parkerpal/Sensor-Pub-" + settings.deviceSettings.deviceMAC;
     mqttHandler = new MQTTHandler(settings.mqttSettings.serverIP.c_str(), 
                                   settings.mqttSettings.serverPort,
                                   settings.mqttSettings.serverUser.c_str(), 
-                                  settings.mqttSettings.serverPassword.c_str());
+                                  settings.mqttSettings.serverPassword.c_str(),
+                                  clientId.c_str(),
+                                  subTopicString.c_str(),
+                                  pubTopicString.c_str());
     mqttHandler->setCallback(callback);
     mqttHandler->setBufferSize(5120);
 

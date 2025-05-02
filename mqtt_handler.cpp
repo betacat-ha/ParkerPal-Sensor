@@ -6,9 +6,11 @@ static WiFiClient espClient;
 WiFiClient &MQTTHandler::getWiFiClient() { return espClient; }
 
 MQTTHandler::MQTTHandler(const char *serverAddress, uint16_t port,
-                         const char *username, const char *password)
+                         const char *username, const char *password, 
+                         const char *clientId, const char *subTopic, const char *pubTopic)
     : _serverAddress(serverAddress), _port(port), _username(username),
-      _password(password) {
+      _password(password), _clientId(clientId), _subTopic(subTopic), 
+      _pubTopic(pubTopic) {
     _mqttClient.setClient(getWiFiClient());
     _mqttClient.setServer(_serverAddress, _port);
 }
@@ -23,16 +25,15 @@ void MQTTHandler::setBufferSize(int size) {
 
 
 bool MQTTHandler::connect() {
-    String clientId = "esp8266-" + WiFi.macAddress();
     Log.noticeln("[MQTT] 连接到：%s", _serverAddress);
-    Log.noticeln("[MQTT] Client ID: %s", clientId.c_str());
+    Log.noticeln("[MQTT] Client ID: %s", _clientId);
 
     if (WiFi.status() != WL_CONNECTED) {
         Log.errorln("[MQTT] Wi-Fi 未连接");
         return false;
     }
 
-    while (!_mqttClient.connect(clientId.c_str(), _username, _password)) {
+    while (!_mqttClient.connect(_clientId, _username, _password)) {
         Log.noticeln("[MQTT] 等待与服务器建立连接...");
         delay(1000);
     }
@@ -56,11 +57,7 @@ void MQTTHandler::subscribeTopic(const char *topic) {
 * 订阅默认主题
 */
 void MQTTHandler::subscribeTopic() {
-    String topicString = "/parkerpal/Sensor-Sub-" + WiFi.macAddress();
-    char subTopic[topicString.length() + 1];
-    strcpy(subTopic, topicString.c_str());
-
-    subscribeTopic(subTopic);
+    subscribeTopic(_subTopic);
 }
 
 void MQTTHandler::publishMessage(const char *topic, const char *message) {
@@ -75,11 +72,7 @@ void MQTTHandler::publishMessage(const char *topic, const char *message) {
 * 使用默认主题发送信息
 */
 void MQTTHandler::publishMessage(const char *message) {
-    String topicString = "/parkerpal/Sensor-Pub-" + WiFi.macAddress();
-    char pubTopic[topicString.length() + 1];
-    strcpy(pubTopic, topicString.c_str());
-
-    publishMessage(pubTopic, message);
+    publishMessage(_pubTopic, message);
 }
 
 void MQTTHandler::loop() {
