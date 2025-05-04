@@ -140,6 +140,16 @@ void setDeviceConfigured() {
 }
 
 /**
+ * 设置系统为未配置
+ */
+void setDeviceUnConfigured() {
+    DeviceSettings settings;
+    loadDeviceConfig(settings);
+    settings.deviceStatus = 0;
+    saveDeviceConfig(settings);
+}
+
+/**
  * 保存从服务器获取的配置
  * @param doc 从服务器获取的配置-JsonObject
  */
@@ -150,26 +160,26 @@ void saveServerConfig(const JsonObject &doc) {
     loadDeviceConfig(deviceSettings);
     deviceSettings.deviceName = doc["name"].as<String>();
     deviceSettings.deviceType = doc["role"].as<String>();
-    deviceSettings.deviceLocation = doc["location"].as<String>();
+    deviceSettings.deviceLocation = doc["loc"].as<String>();
     saveDeviceConfig(deviceSettings);
 
     // 保存停车位配置
     ParkingSpaceList parkingSpaceList;
-    parkingSpaceList.count = doc["parkingSpaces"].size();
+    parkingSpaceList.count = doc["ps"].size();
     for (int i = 0; i < parkingSpaceList.count; ++i) {
-        parkingSpaceList.spaces[i].id = doc["parkingSpaces"][i]["id"].as<String>();
-        parkingSpaceList.spaces[i].spaceName = doc["parkingSpaces"][i]["name"].as<String>();
-        parkingSpaceList.spaces[i].slot = doc["parkingSpaces"][i]["slot"].as<int>();
+        parkingSpaceList.spaces[i].id = doc["ps"][i]["id"].as<String>();
+        parkingSpaceList.spaces[i].spaceName = doc["ps"][i]["name"].as<String>();
+        parkingSpaceList.spaces[i].slot = doc["ps"][i]["slot"].as<int>();
     }
     saveParkingSpaceConfig(parkingSpaceList);
 
     // 保存MQTT配置
     MQTTSettings mqttSettings;
     loadMQTTConfig(mqttSettings);
-    mqttSettings.serverIP = doc["mqtt"]["serverIP"].as<String>();
-    mqttSettings.serverPort = doc["mqtt"]["serverPort"].as<int>();
-    mqttSettings.serverUser = doc["mqtt"]["serverUser"].as<String>();
-    mqttSettings.serverPassword = doc["mqtt"]["serverPassword"].as<String>();
+    mqttSettings.serverIP = doc["mq"]["ip"].as<String>();
+    mqttSettings.serverPort = doc["mq"]["port"].as<int>();
+    mqttSettings.serverUser = doc["mq"]["usr"].as<String>();
+    mqttSettings.serverPassword = doc["mq"]["pwd"].as<String>();
     saveMQTTConfig(mqttSettings);
 
     setDeviceConfigured();

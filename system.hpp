@@ -62,6 +62,7 @@ void loadMQTTConfig(MQTTSettings &settings);
 void loadParkingSpaceConfig(ParkingSpaceList &settings);
 bool isDeviceConfigured();
 void setDeviceConfigured();
+void setDeviceUnConfigured();
 void saveServerConfig(const char *json);
 void saveServerConfig(const JsonObject &doc);
 void eraseAllConfig();
