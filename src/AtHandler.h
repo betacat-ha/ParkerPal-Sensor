@@ -28,6 +28,8 @@ public:
     int mqttConnect(const String& broker, int port, const String& clientId, const String& username, const String& password);
     int mqttSubscribe(const String& topic);
     int mqttPublish(const String& topic, const String& message);
+    int mqttPublishWithRaw(const String& message, unsigned long timeout = 10000);
+    int mqttPublishWithRaw(const uint8_t* data, size_t length, unsigned long timeout = 10000);
     int mqttPublishWithRaw(const String& topic, const uint8_t* data, size_t length, unsigned long timeout = 10000);
     int getWiFiStatus(String& status, String& ssid);
     int setWifiMode(int mode);
@@ -37,6 +39,13 @@ public:
     int disableEcho();
     int enableSysLog();
     int disableSysLog();
+    int restart();
+    int setSNTPConfig();
+    int syncTime();
+
+    int setMqttSubTopic(const char* topic);
+    int setMqttPubTopic(const char* topic);
+    int setMqttClientId(const char* clientId);
 
 private:
     HardwareSerial& espSerial;
@@ -46,9 +55,14 @@ private:
     MQTTCallback mqttCallback = nullptr;
     std::map<String, Callback> customCallbacks;
 
+    char* _mqttSubTopic;
+    char* _mqttPubTopic;
+    char* _mqttClientId;
+
     void handleMQTTMessage(const String& line);
     void processLine(const String& line);
-    int sendATCommand(const String& command, const String& expectedResponse = "OK", unsigned long timeout = 10000);
+    int sendATCommand(const String& command, const bool waitForResponse = true, const String& expectedResponse = "OK", unsigned long timeout = 10000);
     int sendATCommandWithPayload(const String& command, const uint8_t* payload, size_t length, const String& successResponse, const String& failureResponse, unsigned long timeout = 10000);
     int waitForResponse(const String& expectedKeyword, String& rawResponse, unsigned long timeout = 10000);
+    int setString(const char* str, char** dest, char* operation);
 };

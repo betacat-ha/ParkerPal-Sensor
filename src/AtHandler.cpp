@@ -1,7 +1,11 @@
 #include "ArduinoLog.h"
 #include "AtHandler.h"
 
-AtHandler::AtHandler(HardwareSerial& serial) : espSerial(serial) {}
+AtHandler::AtHandler(HardwareSerial& serial) : espSerial(serial) {
+    _mqttClientId = nullptr;
+    _mqttSubTopic = nullptr;
+    _mqttPubTopic = nullptr;
+}
 
 void AtHandler::begin(unsigned long baud) {
     espSerial.begin(baud);
@@ -63,9 +67,13 @@ void AtHandler::processLine(const String& line) {
     }
 }
 
-int AtHandler::sendATCommand(const String& command, const String& expectedResponse, unsigned long timeout) {
+int AtHandler::sendATCommand(const String& command, const bool waitForResponse, const String& expectedResponse, unsigned long timeout) {
     espSerial.println(command.c_str());
     Log.verboseln("[AT] 发送消息：%s", command.c_str());
+
+    if (!waitForResponse) {
+        return 0; // 不等待响应
+    }
 
     String response;
     unsigned long start = millis();
@@ -268,7 +276,6 @@ int AtHandler::mqttSubscribe(const String& topic) {
 int AtHandler::mqttPublish(const String& topic, const String& message) {
     // 转义引号
     String escapedMessage = message;
-    // String escapedMessage = "{\"type\":\"config\"}";
     escapedMessage.replace("\"", "\\\"");
     escapedMessage.trim();
 
@@ -282,6 +289,23 @@ int AtHandler::mqttPublish(const String& topic, const String& message) {
     Serial.println();
 
     return sendATCommand(cmd);
+}
+
+int AtHandler::mqttPublishWithRaw(const String& message, unsigned long timeout) {
+    if (_mqttPubTopic == nullptr) {
+        Log.errorln("[AT] MQTT发布主题未设置");
+        return -1;
+    }
+    const uint8_t* payload = reinterpret_cast<const uint8_t*>(message.c_str());
+    return mqttPublishWithRaw(_mqttPubTopic, payload, message.length(), timeout);
+}
+
+int AtHandler::mqttPublishWithRaw(const uint8_t* data, size_t length, unsigned long timeout){
+    if (_mqttPubTopic == nullptr) {
+        Log.errorln("[AT] MQTT发布主题未设置");
+        return -1;
+    }
+    return mqttPublishWithRaw(_mqttPubTopic, data, length, timeout);
 }
 
 int AtHandler::mqttPublishWithRaw(const String& topic, const uint8_t* data, size_t length, unsigned long timeout) {
@@ -346,4 +370,72 @@ int AtHandler::enableSysLog() {
 
 int AtHandler::disableSysLog() {
     return sendATCommand("AT+SYSLOG=0");
+}
+
+int AtHandler::restart() {
+    return sendATCommand("AT+RST");
+}
+
+int AtHandler::setSNTPConfig() {
+    return sendATCommand("AT+CIPSNTPCFG=1,8,\"cn.ntp.org.cn\",\"ntp.sjtu.edu.cn\"");
+}
+
+int AtHandler::syncTime() {
+    espSerial.println("AT+CIPSNTPTIME?");
+    String response;
+    int result = waitForResponse("+CIPSNTPTIME:", response);
+    if (result != 0) return result;
+    int startIdx = response.indexOf(":") + 1;
+    int endIdx = response.indexOf('\r', startIdx);
+    if (startIdx != -1 && endIdx != -1) {
+        String time = response.substring(startIdx, endIdx);
+        Log.verboseln("[AT] 当前时间：%s", time.c_str());
+        struct tm timeinfo;
+        sscanf(time.c_str(), "%d,%d,%d,%d,%d,%d", &timeinfo.tm_year, &timeinfo.tm_mon, &timeinfo.tm_mday, &timeinfo.tm_hour, &timeinfo.tm_min, &timeinfo.tm_sec);
+        timeinfo.tm_year -= 1900; // 年份从1900开始
+        timeinfo.tm_mon -= 1; // 月份从0开始
+        time_t t = mktime(&timeinfo);
+        struct tm* localTime = localtime(&t);
+        char buffer[64];
+        snprintf(buffer, sizeof(buffer), "[AT] 当前时间：%d-%02d-%02d %02d:%02d:%02d",
+            localTime->tm_year + 1900, localTime->tm_mon + 1, localTime->tm_mday,
+            localTime->tm_hour, localTime->tm_min, localTime->tm_sec);
+        Log.noticeln("%s", buffer);
+        return 0;
+    }
+    return -1;
+}
+
+int AtHandler::setString(const char* str, char** dest, char* operation) {
+    if (str == nullptr) {
+        Log.errorln("[AT] %s不能为空", operation);
+        return -1;
+    }
+
+    if (dest != nullptr) {
+        free(*dest);
+        *dest = nullptr;
+    }
+
+    *dest = strdup(str);
+
+    if (*dest == nullptr) {
+        Log.errorln("[AT] 内存分配失败");
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int AtHandler::setMqttSubTopic(const char* topic) {
+    return setString(topic, &_mqttSubTopic, "MQTT订阅主题");
+}
+
+int AtHandler::setMqttPubTopic(const char* topic) {
+    return setString(topic, &_mqttPubTopic, "MQTT发布主题");
+}
+
+int AtHandler::setMqttClientId(const char* clientId) {
+    return setString(clientId, &_mqttClientId, "MQTT客户端ID");
 }
