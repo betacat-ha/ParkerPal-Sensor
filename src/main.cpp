@@ -2,6 +2,7 @@
   开发团队：智泊无忧硬件组
   立项时间：2024.8.30
 */
+#include <Arduino.h>
 #include "cross_platform.hpp"
 #include "json_helper.hpp"
 #include "log_helper.hpp"
@@ -16,6 +17,8 @@
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 
+void callbackMqtt(const char* topic, const char* message);
+void callbackMqttByPayload(char* topic, byte* payload, unsigned int length);
 // 配置文件
 #if __has_include("config.h")
 // 如果存在 config.h，则优先包含
