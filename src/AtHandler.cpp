@@ -116,26 +116,24 @@ int AtHandler::sendATCommandWithPayload(const String& command, const uint8_t* pa
     start = millis();
     while (millis() - start < timeout) {
         while (espSerial.available()) {
-            char c = espSerial.read();
-            if (c == '\n' || c == '\r') {
-                if (line.length() > 0) {
-                    line.trim();
+            line = espSerial.readStringUntil('\n');
+            if (line.length() > 0) {
+                line.trim();
 
-                    if (line.startsWith(successResponse)) {
-                        Log.infoln("[AT] 成功响应：%s", line.c_str());
-                        return 0;
-                    } else if (line.startsWith(failureResponse)) {
-                        Log.errorln("[AT] 失败响应：%s", line.c_str());
-                        return -1;
-                    } else if (line.startsWith("+MQTTSUBRECV:")) {
-                        handleMQTTMessage(line);  // 实时处理订阅消息
-                    } else {
-                        Log.verbose("[AT] 其他响应：%s", line.c_str());
-                    }
-                    line = "";
+                if (line.startsWith(successResponse)) {
+                    Log.infoln("[AT] 成功响应：%s", line.c_str());
+                    delay(100);
+                    return 0;
+                } else if (line.startsWith(failureResponse)) {
+                    Log.errorln("[AT] 失败响应：%s", line.c_str());
+                    delay(100);
+                    return -1;
+                } else if (line.startsWith("+MQTTSUBRECV:")) {
+                    handleMQTTMessage(line);  // 实时处理订阅消息 
+                } else {
+                    Log.verbose("[AT] 其他响应：%s", line.c_str());
                 }
-            } else {
-                line += c;
+                line = "";
             }
         }
     }
