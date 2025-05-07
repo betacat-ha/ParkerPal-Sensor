@@ -17,6 +17,7 @@
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 
+
 void callbackMqtt(const char* topic, const char* message);
 void callbackMqttByPayload(char* topic, byte* payload, unsigned int length);
 // 配置文件
@@ -105,21 +106,12 @@ void setup() {
     initLog(CONF_LOG_LEVEL);
 
     //=====================初始化通信=============================
-    // TODO 缺少重试
-    // wifiHandler = new WiFiHandler(CONF_WIFI_SSID, CONF_WIFI_PASSWORD);
-
-    // if (!wifiHandler->connect(CONF_WIFI_OVERRIDE_SMARTCONF)) {
-    //     Log.errorln("[Wi-Fi] 无法建立与AP的连接。");
-    //     // 如果Wi-Fi连接失败，进入死循环
-    //     while (1) {
-    //         // system_soft_wdt_feed(); // 喂狗，防止复位
-    //     }
-    // }
-
     // 初始化联网模块串口
     strip.setPixelColor(0, initColors[COLOR_WIFI]);
     strip.show();
     ESPSerial.begin(115200, SERIAL_8N1, CONF_RX_PIN, CONF_TX_PIN);
+    ESPSerial.println("AT+RST");
+    delay(3000);
     ESPSerial.println("AT");
     if (ESPSerial.find("OK")) {
         Log.noticeln("[AT] ESP AT模块初始化成功！");
@@ -162,6 +154,7 @@ void setup() {
         settings.mqttSettings.serverPort = CONF_MQTT_SERVER_PORT;
         settings.mqttSettings.serverUser = CONF_MQTT_SERVER_USER;
         settings.mqttSettings.serverPassword = CONF_MQTT_SERVER_PASSWORD;
+        saveConfig(settings);
     } else {
         // 加载配置
         loadConfig(settings);
@@ -177,6 +170,7 @@ void setup() {
               settings.deviceSettings.deviceMAC.c_str());
     String subTopicString = "/parkerpal/Sensor-Sub-" + settings.deviceSettings.deviceMAC;
     String pubTopicString = "/parkerpal/Sensor-Pub-" + settings.deviceSettings.deviceMAC;
+    atHandler->setMqttPubTopic(pubTopicString.c_str());
     // mqttHandler = new MQTTHandler(settings.mqttSettings.serverIP.c_str(), 
     //                               settings.mqttSettings.serverPort,
     //                               settings.mqttSettings.serverUser.c_str(), 
@@ -225,7 +219,7 @@ void setup() {
 
     // 请求服务器配置
     String requestMessage = "{\"type\":\"configuration_request\",\"deviceMacAddress\":\"" + settings.deviceSettings.deviceMAC + "\"}";
-    if (atHandler->mqttPublishWithRaw(pubTopicString.c_str(), (const uint8_t *)requestMessage.c_str(), strlen(requestMessage.c_str())) != 0) {
+    if (atHandler->mqttPublishWithRaw(requestMessage.c_str()) != 0) {
         Log.errorln("[AT] 无法发布配置请求。");
         strip.setPixelColor(0, initColors[COLOR_ERROR]);
         strip.show();
@@ -235,7 +229,7 @@ void setup() {
         
     }
     
-    setDeviceUnConfigured();
+    // setDeviceUnConfigured();
 
     Log.noticeln("[System] 等待服务器配置...");
     while (!isDeviceConfigured()) {
@@ -278,8 +272,14 @@ void setup() {
         }
     }
 
+    // wifiHandler = new WiFiHandler(CONF_WIFI_SSID, CONF_WIFI_PASSWORD);
+
+    // if (!wifiHandler->connect(CONF_WIFI_OVERRIDE_SMARTCONF)) {
+    //     Log.errorln("[Wi-Fi] 无法建立与AP的连接。");
+    // }
+
     //同步系统时间
-    syncSystemTime();
+    // syncSystemTime();
 
     //========================初始化完成==========================
     strip.setPixelColor(0, initColors[COLOR_COMPLETE]);
@@ -345,7 +345,8 @@ void loop() {
     if (millis() - lastPublishTime > publishInterval || 1) {
         lastPublishTime = millis();
         String message = fromJsonStruct(parkingSpaceStatus);
-        mqttHandler->publishMessage(message.c_str());
+        // mqttHandler->publishMessage(message.c_str());
+        atHandler->mqttPublishWithRaw(message.c_str());
     }
 
     // // 保持MQTT心跳
