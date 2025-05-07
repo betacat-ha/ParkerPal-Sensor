@@ -3,3 +3,4 @@ libraries
 .vscode
 build
 config.h
+.pio
