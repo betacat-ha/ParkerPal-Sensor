@@ -1,10 +1,15 @@
 #ifndef WIFI_HANDLER_HPP
 #define WIFI_HANDLER_HPP
 
-#include "cross_platform.hpp"
-#include WIFI_LIBRARY
 #include "log_helper.hpp"
 #include "json_helper.hpp"
+
+// 跨平台兼容
+#ifdef ESP32
+#include <WiFi.h>
+#elif defined(ESP8266)
+#include <ESP8266WiFi.h>
+#endif
 
 typedef bool (*FilterFunction)(const NetworkInfo&);
 
