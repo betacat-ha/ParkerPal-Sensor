@@ -12,7 +12,7 @@ String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus) {
     doc["type"] = "space_status";
 
     // 设备属性
-    doc["deviceId"] = "1";
+    // doc["deviceId"] = "1";
     // doc["deviceMacAddress"] = "F4:CF:A2:68:56:73";
 
     doc["id"] = parkingSpaceStatus.id.c_str();

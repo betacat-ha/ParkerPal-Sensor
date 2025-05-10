@@ -20,6 +20,8 @@
 
 void callbackMqtt(const char* topic, const char* message);
 void callbackMqttByPayload(char* topic, byte* payload, unsigned int length);
+void occupyStatusChangeCallback(VL53L0XSensor* sensor);
+void sensorErrorCallback(VL53L0XSensor* sensor);
 // 配置文件
 #if __has_include("config.h")
 // 如果存在 config.h，则优先包含
@@ -38,9 +40,6 @@ HardwareSerial ESPSerial(2); // 使用硬件串口2
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 //=======================物联网部分============================
-// const char * WIFI_CHANNEL                       // Wi-Fi接入点的频道，可选
-// const char * WIFI_BSSID                         // Wi-Fi接入点的MAC地址，可选
-WiFiHandler *wifiHandler = nullptr;
 AtHandler *atHandler = nullptr;
 
 const char *MQTT_SERVER_ADDRESS = CONF_MQTT_SERVER_ADDRESS;   // MQTT服务器地址
@@ -48,19 +47,6 @@ const char *MQTT_SERVER_USER = CONF_MQTT_SERVER_USER;         // MQTT服务器�
 const char *MQTT_SERVER_PASSWORD = CONF_MQTT_SERVER_PASSWORD; // MQTT服务器密码
 constexpr uint16_t MQTT_SERVER_PORT = CONF_MQTT_SERVER_PORT;
 MQTTHandler *mqttHandler = nullptr;
-
-//=======================车位检测部分============================
-VL53L0XSensor *sensor = nullptr;
-
-// 车位占用判断阈值
-constexpr int OCCUPY_THRESHOLD_MIN = 140; // 判断车位占用的最低界限
-constexpr int OCCUPY_THRESHOLD_MAX = 280; // 判断车位占用的最高界限
-
-// String spaceId = "70162";
-// String spaceName = "A-035"; // 车位名字
-int occupyStatus = 0;         // 占用状态，0表示未占用；1表示被占用；
-int reportedOccupyStatus = 0; // 上一次上报给服务器的占用状态
-int reservationStatus = 0;    // 预约状态，0表示未被预约；1表示已被预约
 
 uint32_t initColors[] = {
   strip.Color(255,0,255),     // 洋红色：初始化传感器
@@ -125,7 +111,7 @@ void setup() {
     }
 
     atHandler = new AtHandler(ESPSerial);
-    // atHandler->disableEcho(); // 禁用回显
+    atHandler->disableEcho(); // 禁用回显
     atHandler->enableSysLog();
 
     // 初始化Wi-Fi连接
@@ -150,17 +136,17 @@ void setup() {
 
         settings.deviceSettings.deviceMAC = "68:C6:3A:FB:E6:17";
 
-        settings.mqttSettings.serverIP = CONF_MQTT_SERVER_ADDRESS;
-        settings.mqttSettings.serverPort = CONF_MQTT_SERVER_PORT;
-        settings.mqttSettings.serverUser = CONF_MQTT_SERVER_USER;
-        settings.mqttSettings.serverPassword = CONF_MQTT_SERVER_PASSWORD;
+        settings.mqttSettings.serverIP = MQTT_SERVER_ADDRESS;
+        settings.mqttSettings.serverPort = MQTT_SERVER_PORT;
+        settings.mqttSettings.serverUser = MQTT_SERVER_USER;
+        settings.mqttSettings.serverPassword = MQTT_SERVER_PASSWORD;
         saveConfig(settings);
     } else {
         // 加载配置
         loadConfig(settings);
     }
 
-    // 如果Wi-Fi连接成功，则初始化MQTTHandler
+    // 如果Wi-Fi连接成功，则初始化MQTT通信
     strip.setPixelColor(0, initColors[COLOR_MQTT]);
     strip.show();
 
@@ -171,29 +157,6 @@ void setup() {
     String subTopicString = "/parkerpal/Sensor-Sub-" + settings.deviceSettings.deviceMAC;
     String pubTopicString = "/parkerpal/Sensor-Pub-" + settings.deviceSettings.deviceMAC;
     atHandler->setMqttPubTopic(pubTopicString.c_str());
-    // mqttHandler = new MQTTHandler(settings.mqttSettings.serverIP.c_str(), 
-    //                               settings.mqttSettings.serverPort,
-    //                               settings.mqttSettings.serverUser.c_str(), 
-    //                               settings.mqttSettings.serverPassword.c_str(),
-    //                               clientId.c_str(),
-    //                               subTopicString.c_str(),
-    //                               pubTopicString.c_str());
-    // mqttHandler->setCallback(callbackMqtt);
-    // mqttHandler->setBufferSize(5120);
-    // 
-    // if (!mqttHandler->connect()) {
-    //     Log.errorln("[MQTT] 无法建立与服务器的连接。");
-    //     // 如果MQTT连接失败，进入死循环
-    //     while (1) {
-    //         // system_soft_wdt_feed(); // 喂狗，防止复位
-    //     }
-    // }
-
-    // mqttHandler->subscribeTopic();
-
-    // // 请求服务器配置
-    // mqttHandler->publishMessage(("{\"type\":\"configuration_request\", \"deviceMacAddress\":\"" + settings.deviceSettings.deviceMAC + "\"}").c_str());
-
     atHandler->onMQTTMessage(callbackMqtt);
 
     if (atHandler->mqttConnect(settings.mqttSettings.serverIP.c_str(), 
@@ -228,12 +191,9 @@ void setup() {
         }
         
     }
-    
-    // setDeviceUnConfigured();
 
     Log.noticeln("[System] 等待服务器配置...");
     while (!isDeviceConfigured()) {
-        // mqttHandler->loop();    // 保持MQTT心跳
         atHandler->loop();    // 检查AT消息
         // system_soft_wdt_feed(); // 喂狗，防止复位
         delay(1000);
@@ -262,21 +222,22 @@ void setup() {
     //=====================初始化激光传感器========================
     strip.setPixelColor(0, initColors[COLOR_SENSOR]);
     strip.show();
-    sensor = new VL53L0XSensor();
-    if (!sensor) {
-        Log.errorln("[VL53L0X] 初始化失败！");
-        strip.setPixelColor(0, initColors[COLOR_ERROR]);
-        strip.show();
-        while (1 && !CONF_TEST_IGNORE_VL53L0X_FAILED) {
-            // system_soft_wdt_feed(); // 喂狗，防止复位
+
+    for (int i = 0; i < settings.parkingSpaceList.count; ++i) {
+        ParkingSpace space = settings.parkingSpaceList.spaces[i];
+        Log.verboseln("[VL53L0X] 初始化传感器 %s", space.id.c_str());
+        VL53L0XSensor* sensor = new VL53L0XSensor(space.id.c_str(), space.slot);
+        if (!sensor) {
+            Log.errorln("[VL53L0X] 初始化失败！");
+            strip.setPixelColor(0, initColors[COLOR_ERROR]);
+            strip.show();
+            while (1 && !CONF_TEST_IGNORE_VL53L0X_FAILED) {
+                // system_soft_wdt_feed(); // 喂狗，防止复位
+            }
         }
+        sensor->setOccupyStatusChangeCallback(occupyStatusChangeCallback);
+        sensor->setSensorFailureCallback(sensorErrorCallback);
     }
-
-    // wifiHandler = new WiFiHandler(CONF_WIFI_SSID, CONF_WIFI_PASSWORD);
-
-    // if (!wifiHandler->connect(CONF_WIFI_OVERRIDE_SMARTCONF)) {
-    //     Log.errorln("[Wi-Fi] 无法建立与AP的连接。");
-    // }
 
     //同步系统时间
     // syncSystemTime();
@@ -291,71 +252,17 @@ void setup() {
 }
 
 void loop() {
-    /*
-      ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-      ┃                                                            ┃
-      ┃                                                            ┃
-      ┃                          Key_read                          ┃
-      ┃                                                            ┃
-      ┃                                                            ┃
-      ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-    */
-
-    /*
-      ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-      ┃                                                            ┃
-      ┃                                                            ┃
-      ┃                       Serial_read                          ┃
-      ┃                                                            ┃
-      ┃                                                            ┃
-      ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-    */
-
-    static unsigned long lastPublishTime = 0;
+    static unsigned long lastCheckTime = 0;
     constexpr unsigned long publishInterval = 3000; // 每3秒发布一次数据
 
-    // WiFiScanList list = wifiHandler->scanNetworks();
-    // String listJson = fromJsonStruct(list);
-    // Log.verboseln("[Wi-Fi] AP列表：%s", listJson.c_str());
-    // mqttHandler->publishMessage(listJson.c_str());
-
-    // TODO: 这里要适配多车位
-    // 获取距离并判断车位状态
-    int distance = sensor->getDistance();
-    if (distance >= 140 && distance <= 280) {
-        occupyStatus = 1;
-    } else {
-        occupyStatus = 0;
+    // 定期检查车位状态
+    if (millis() - lastCheckTime > publishInterval || 1) {
+        lastCheckTime = millis();
+        VL53L0XSensor::loopAllSensors();
     }
-
-    if (!CONF_TEST_IGNORE_VL53L0X_FAILED)
-        Log.verboseln("[VL53L0X] 距离%dmm", distance);
-
-    // TODO: 这里要适配多车位
-    ParkingSpaceStatus parkingSpaceStatus = {
-        .id = settings.parkingSpaceList.spaces[0].id,
-        .spaceName = settings.parkingSpaceList.spaces[0].spaceName,
-        .occupyStatus = occupyStatus,
-        .reservationStatus = reservationStatus,
-        .distance = distance
-    };
-    Log.verboseln("[VL53L0X] 当前状态：%s", fromJsonStruct(parkingSpaceStatus).c_str());
-
-    // 组装消息并发布到MQTT服务器
-    if (millis() - lastPublishTime > publishInterval || 1) {
-        lastPublishTime = millis();
-        String message = fromJsonStruct(parkingSpaceStatus);
-        // mqttHandler->publishMessage(message.c_str());
-        atHandler->mqttPublishWithRaw(message.c_str());
-    }
-
-    // // 保持MQTT心跳
-    // mqttHandler->loop();
 
     // 检查AT消息
     atHandler->loop();
-    
-    delay(3000);
 }
 
 /**
@@ -425,4 +332,33 @@ void callbackMqtt(const char* topic, const char* message) {
         Log.noticeln("[MQTT] 服务器发出了一个未知指令。");
         break;
     }
+}
+
+/**
+ * 传感器状态改变的回调函数
+ * @param sensor 发生改变的车位传感器
+ */
+void occupyStatusChangeCallback(VL53L0XSensor* sensor) {
+    Log.noticeln("[VL53L0X] 停车位 %s 状态改变为 %s", 
+        sensor->getId().c_str(), 
+        sensor->getOccupyStatus() ? "已占用" : "未占用");
+
+    ParkingSpaceStatus parkingSpaceStatus = {
+    .id = sensor->getId().c_str(),
+    .occupyStatus = sensor->getOccupyStatus(),
+    .distance = (float)sensor->getDistance()
+    };
+
+    // 更新车位状态
+    String message = fromJsonStruct(parkingSpaceStatus);
+    atHandler->mqttPublishWithRaw(message.c_str());
+}
+
+/**
+ * 传感器错误的回调函数
+ * @param sensor 发生错误的车位传感器
+ */
+void sensorErrorCallback(VL53L0XSensor* sensor) {
+    Log.errorln("[VL53L0X] 停车位 %s 发生错误！", sensor->getId().c_str());
+    //   mqttHandler->publishMessage(getStatusJson());
 }
