@@ -30,7 +30,14 @@ VL53L0XSensor::~VL53L0XSensor() {
     }
 }
 
-const void VL53L0XSensor::loopAllSensors() {
+const void VL53L0XSensor::loopAllSensors(int interval) {
+    // 控制调用时间
+    static unsigned long lastTime = 0;
+    unsigned long currentTime = millis();
+    if (currentTime - lastTime < interval) {
+        return;
+    }
+
     for (auto& sensor : VL53L0XSensor::getAllSensors()) {
         sensor->loop();
     }

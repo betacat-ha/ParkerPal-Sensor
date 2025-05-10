@@ -17,7 +17,7 @@ public:
 
 
     // 静态方法，循环所有传感器实例
-    static const void loopAllSensors();
+    static const void loopAllSensors(int interval = 3000);
 
     void loop();
 
