@@ -16,6 +16,7 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
+#include "./sniffer/sniffer.h"
 
 
 void callbackMqtt(const char* topic, const char* message);
@@ -242,6 +243,9 @@ void setup() {
     //同步系统时间
     // syncSystemTime();
 
+    //=====================初始化嗅探功能========================
+    Sniffer::begin(snifferCallback);
+
     //========================初始化完成==========================
     strip.setPixelColor(0, initColors[COLOR_COMPLETE]);
     strip.show();
@@ -361,4 +365,14 @@ void occupyStatusChangeCallback(VL53L0XSensor* sensor) {
 void sensorErrorCallback(VL53L0XSensor* sensor) {
     Log.errorln("[VL53L0X] 停车位 %s 发生错误！", sensor->getId().c_str());
     //   mqttHandler->publishMessage(getStatusJson());
+}
+
+/**
+ * 嗅探回调函数
+ * @param info 嗅探到的数据
+ */
+void snifferCallback(const Sniffer::PacketInfo& info) {
+    Log.verboseln("[Sniffer] MAC: %s, SSID: %s, RSSI: %d", info.mac, info.ssid, info.rssi);
+    // 处理嗅探到的数据
+    atHandler->mqttPublishWithRaw(toJsonString(info).c_str());
 }

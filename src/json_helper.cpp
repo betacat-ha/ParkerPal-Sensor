@@ -8,6 +8,7 @@
 String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus) {
     StaticJsonDocument<256> doc;
 
+    
     // 设置消息类型
     doc["type"] = "space_status";
 
@@ -38,7 +39,7 @@ String fromJsonStruct(const SpaceStatusList& spaceStatusList) {
     doc["type"] = "space_status_list";
 
     // 设备属性
-    doc["deviceId"] = "1";
+    // doc["deviceId"] = "1";
 
     JsonArray spaceStatusArray = doc.createNestedArray("spaces");
 
@@ -54,6 +55,21 @@ String fromJsonStruct(const SpaceStatusList& spaceStatusList) {
     String output;
     serializeJson(doc, output);
     return output;
+}
+
+/**
+ * 转换SnifferInfo结构体为JSON字符串
+ * @param packetInfo
+ * @return JSON字符串
+ */
+ String toJsonString(const Sniffer::PacketInfo& packetInfo) { 
+    StaticJsonDocument<256> doc;
+
+    // 设置消息类型
+    doc["type"] = "sniffer_info";
+    doc["mac"] = packetInfo.mac;
+    doc["ssid"] = packetInfo.ssid;
+    doc["rssi"] = packetInfo.rssi;
 }
 
 /**

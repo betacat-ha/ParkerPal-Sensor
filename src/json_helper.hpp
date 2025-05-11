@@ -2,6 +2,7 @@
 #define JSON_HELPER_HPP
 
 #include <ArduinoJson.h>
+#include "./sniffer/sniffer.h"
 
 constexpr int MAX_NETWORKS = 30;
 constexpr int MAX_SPACE = 10;
@@ -85,6 +86,8 @@ String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus);
 String fromJsonStruct(const SpaceStatusList& spaceStatusList);
 
 String fromJsonStruct(const WiFiScanList& wiFiScanList);
+
+String toJsonString(const Sniffer::PacketInfo& packetInfo);
 
 JsonObject getJsonObject(JsonDocument& doc, const ParkingSpaceStatus& parkingSpaceStatus);
 
