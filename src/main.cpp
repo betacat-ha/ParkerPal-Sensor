@@ -23,6 +23,8 @@ void callbackMqtt(const char* topic, const char* message);
 void callbackMqttByPayload(char* topic, byte* payload, unsigned int length);
 void occupyStatusChangeCallback(VL53L0XSensor* sensor);
 void sensorErrorCallback(VL53L0XSensor* sensor);
+void snifferCallback(const Sniffer::PacketInfo& info);
+
 // 配置文件
 #if __has_include("config.h")
 // 如果存在 config.h，则优先包含
@@ -300,8 +302,8 @@ void callbackMqtt(const char* topic, const char* message) {
     }
 
     // 提取Data部分
-    JsonObject data = doc["data"];
-    const char* operation = data["operation"];
+    JsonObject data = doc["d"];
+    const char* operation = data["o"];
     OperationCode code = getOperationCode(operation);
 
     switch (code) {

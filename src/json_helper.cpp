@@ -7,10 +7,9 @@
  */
 String fromJsonStruct(const ParkingSpaceStatus& parkingSpaceStatus) {
     StaticJsonDocument<256> doc;
-
     
     // 设置消息类型
-    doc["type"] = "space_status";
+    doc["t"] = "space_status";
 
     // 设备属性
     // doc["deviceId"] = "1";
@@ -36,7 +35,7 @@ String fromJsonStruct(const SpaceStatusList& spaceStatusList) {
     StaticJsonDocument<256> doc;
     
     // 设置消息类型
-    doc["type"] = "space_status_list";
+    doc["t"] = "space_status_list";
 
     // 设备属性
     // doc["deviceId"] = "1";
@@ -66,10 +65,14 @@ String fromJsonStruct(const SpaceStatusList& spaceStatusList) {
     StaticJsonDocument<256> doc;
 
     // 设置消息类型
-    doc["type"] = "sniffer_info";
-    doc["mac"] = packetInfo.mac;
-    doc["ssid"] = packetInfo.ssid;
-    doc["rssi"] = packetInfo.rssi;
+    doc["t"] = "SI";
+    doc["ma"] = packetInfo.mac;
+    doc["ss"] = packetInfo.ssid;
+    doc["rs"] = packetInfo.rssi;
+
+    String output;
+    serializeJson(doc, output);
+    return output;
 }
 
 /**
@@ -79,7 +82,7 @@ String fromJsonStruct(const SpaceStatusList& spaceStatusList) {
  */
 String fromJsonStruct(const WiFiScanList& wiFiScanList) {
     DynamicJsonDocument doc(1024);
-    doc["type"] = "Wi-Fi";
+    doc["t"] = "Wi-Fi";
 
     JsonArray networksArray = doc.createNestedArray("networks");
 
@@ -104,7 +107,7 @@ String fromJsonStruct(const WiFiScanList& wiFiScanList) {
 JsonObject getJsonObject(JsonDocument& doc, const ParkingSpaceStatus& parkingSpaceStatus) {
     doc.clear();
 
-    doc["type"] = "VL53L0X";
+    doc["t"] = "VL53L0X";
     doc["spaceName"] = parkingSpaceStatus.spaceName.c_str();
     doc["occupyStatus"] = parkingSpaceStatus.occupyStatus;
     doc["reservationStatus"] = parkingSpaceStatus.reservationStatus;
@@ -121,7 +124,7 @@ JsonObject getJsonObject(JsonDocument& doc, const ParkingSpaceStatus& parkingSpa
 JsonObject getJsonObject(JsonDocument& doc, const WiFiScanList& wiFiScanList) {
     doc.clear();
 
-    doc["type"] = "Wi-Fi";
+    doc["t"] = "Wi-Fi";
 
     JsonArray networksArray = doc.createNestedArray("networks");
 
