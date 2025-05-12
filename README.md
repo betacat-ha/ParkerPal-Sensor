@@ -1,4 +1,4 @@
-# ParkerPal-Sensor-ESP8266
+# ParkerPal-Sensor
 
 ## Module
 - wifi_handler
@@ -52,5 +52,33 @@
 <td align="center">GND</td>
 <td align="center">SDA</td>
 <td align="center">SCL</td>
+</tr>
+</table>
+
+<table>
+<capital>对于一个ESP32拖多传感器，还需要额外连接以下引脚，逻辑插槽（slot）为传感器编号，用于ESP模块的识别和显示在后台</capital>
+<tr>
+<th></th>
+<th align="center" colspan=5>引脚</th>
+</tr>
+<tr>
+<th>VL53L0X</th>
+<td align="center" colspan=5>XSHUT</td>
+</tr>
+<tr>
+<tr>
+<th>ESP32</th>
+<td align="center">GPIO1</td>
+<td align="center">GPIO2</td>
+<td align="center">GPIO3</td>
+<td align="center">GPIO18</td>
+<td align="center">......</td>
+</tr>
+<th>逻辑插槽（slot）</th>
+<td align="center">0</td>
+<td align="center">1</td>
+<td align="center">2</td>
+<td align="center">3</td>
+<td align="center">......</td>
 </tr>
 </table>
