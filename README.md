@@ -1,8 +1,11 @@
 # ParkerPal-Sensor
+<div>
 <img alt="Language Badge" src="https://img.shields.io/badge/Language-C_&_C++-blue">
 <img alt="Platform Badge" src="https://img.shields.io/badge/Platform-ESP32_&_ESP8266-green">
 <img alt="GitHub Last Commit" src="https://img.shields.io/github/last-commit/betacat-ha/parkerpal-sensor">
 <img alt="GitHub contributors" src="https://img.shields.io/github/contributors/betacat-ha/parkerpal-sensor">
+<img alt="GitHub License Badge" src="https://img.shields.io/github/license/betacat-ha/parkerpal-sensor">
+</div>
 
 ## 功能
 硬件端负责实时收集和处理停车场内的各类数据，为系统提供准确的车位信息和定位数据。如图所示，其架构分为应用层、Arduino APIs、ESP-IDF操作系统和硬件平台，以及外围硬件。
