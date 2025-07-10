@@ -1,5 +1,9 @@
-# ParkerPal-Sensor
-<div>
+<div align="center">
+  <img width="100px" alt="logo" style="width: 100px;
+        height: 100px; border-radius: 15px; margin: 5;" src="img/logo-round.png"/>
+  <p style="font-size: 24px; font-weight: bold;">智泊无忧硬件端</p>
+</div>
+<div align="center">
 <img alt="Language Badge" src="https://img.shields.io/badge/Language-C_&_C++-blue">
 <img alt="Platform Badge" src="https://img.shields.io/badge/Platform-ESP32_&_ESP8266-green">
 <img alt="GitHub Last Commit" src="https://img.shields.io/github/last-commit/betacat-ha/parkerpal-sensor">
