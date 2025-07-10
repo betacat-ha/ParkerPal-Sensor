@@ -1,3 +1,11 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Original Copyright(C) 2024 by ParkerPal
+ */
+
 /*项目名称：智泊无忧传感器端
   开发团队：智泊无忧硬件组
   立项时间：2024.8.30

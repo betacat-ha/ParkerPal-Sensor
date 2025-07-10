@@ -1,3 +1,11 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Original Copyright(C) 2024 by ParkerPal
+ */
+
 // 本文件为模版，请新建config.h，并复制以下内容到其中修改。
 #ifndef CONFIG_H
 #define CONFIG_H
