@@ -1,15 +1,17 @@
 # ParkerPal-Sensor
+<img alt="Language Badge" src="https://img.shields.io/badge/Language-C_&_C++-blue">
+<img alt="Platform Badge" src="https://img.shields.io/badge/Platform-ESP32_&_ESP8266-green">
+<img alt="GitHub Last Commit" src="https://img.shields.io/github/last-commit/betacat-ha/parkerpal-sensor">
+<img alt="GitHub contributors" src="https://img.shields.io/github/contributors/betacat-ha/parkerpal-sensor">
 
-## Module
-- wifi_handler
-- mqtt_handler
-- vl53l0x_sensor
-- log_helper
-- json_helper
+## 功能
+硬件端负责实时收集和处理停车场内的各类数据，为系统提供准确的车位信息和定位数据。如图所示，其架构分为应用层、Arduino APIs、ESP-IDF操作系统和硬件平台，以及外围硬件。
+
+![硬件功能图](./img/Hardware-Organization.svg)
 
 
-# 硬件连接
-## ESP32作为主控，ESP8266作为通信模块（推荐）
+## 硬件连接
+### ESP32作为主控，ESP8266作为通信模块（推荐）
 两个设备连接方式如下：
 
 <table>
