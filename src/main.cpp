@@ -192,7 +192,7 @@ void setup() {
     };
 
     // 请求服务器配置
-    String requestMessage = "{\"type\":\"configuration_request\",\"deviceMacAddress\":\"" + settings.deviceSettings.deviceMAC + "\"}";
+    String requestMessage = "{\"t\":\"configuration_request\",\"deviceMacAddress\":\"" + settings.deviceSettings.deviceMAC + "\"}";
     if (atHandler->mqttPublishWithRaw(requestMessage.c_str()) != 0) {
         Log.errorln("[AT] 无法发布配置请求。");
         strip.setPixelColor(0, initColors[COLOR_ERROR]);
