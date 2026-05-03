@@ -110,6 +110,12 @@ void setup() {
         loadConfig(settings);
     }
 
+    // 如果设备MAC地址为空，则使用当前Wi-Fi模块的MAC地址作为设备MAC地址
+    if (settings.deviceSettings.deviceMAC.isEmpty() || settings.deviceSettings.deviceMAC.equals("")) {
+        settings.deviceSettings.deviceMAC = WiFi.macAddress();
+    }
+    
+
     // 如果Wi-Fi连接成功，则初始化MQTTHandler
     String clientId = "Sensor-" + settings.deviceSettings.deviceMAC;
     String subTopicString = "/parkerpal/Sensor-Sub-" + settings.deviceSettings.deviceMAC;
@@ -135,7 +141,7 @@ void setup() {
     mqttHandler->subscribeTopic();
 
     // 请求服务器配置
-    mqttHandler->publishMessage(("{\"type\":\"configuration_request\", \"deviceMacAddress\":\"" + settings.deviceSettings.deviceMAC + "\"}").c_str());
+    mqttHandler->publishMessage(("{\"t\":\"configuration_request\", \"deviceMacAddress\":\"" + settings.deviceSettings.deviceMAC + "\"}").c_str());
 
     Log.noticeln("[System] 等待服务器配置...");
     while (!isDeviceConfigured()) {
